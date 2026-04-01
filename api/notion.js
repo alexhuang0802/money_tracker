@@ -77,16 +77,17 @@ export default async function handler(req, res) {
 
   try {
     // 並行查詢所有資料庫（個別容錯）
-    async function safeQuery(id) {
+    const errors = {};
+    async function safeQuery(name, id) {
       try { return await queryDB(token, id); }
-      catch (e) { console.error(`DB ${id} failed:`, e.message); return []; }
+      catch (e) { errors[name] = e.message; return []; }
     }
     const [monthlyRaw, incomeRaw, expensesRaw, stocksRaw, purchasesRaw] = await Promise.all([
-      safeQuery(DB_IDS.monthly),
-      safeQuery(DB_IDS.income),
-      safeQuery(DB_IDS.expenses),
-      safeQuery(DB_IDS.stocks),
-      safeQuery(DB_IDS.purchases),
+      safeQuery('monthly', DB_IDS.monthly),
+      safeQuery('income', DB_IDS.income),
+      safeQuery('expenses', DB_IDS.expenses),
+      safeQuery('stocks', DB_IDS.stocks),
+      safeQuery('purchases', DB_IDS.purchases),
     ]);
 
     // 整理每月總覽
@@ -148,6 +149,7 @@ export default async function handler(req, res) {
 
     return res.status(200).json({
       monthly, income, expenses, stocks, purchases,
+      errors: Object.keys(errors).length ? errors : undefined,
       fetchedAt: new Date().toISOString(),
     });
 
