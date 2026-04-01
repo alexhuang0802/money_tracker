@@ -92,6 +92,7 @@ export default async function handler(req, res) {
 
     // 整理每月總覽
     const monthly = monthlyRaw.map(p => ({
+      id: p.id,
       name: getText(p.properties['Name']),
       totalIncome: getNum(p.properties['Total Mothly Income']),
       totalExpenses: getNum(p.properties['Total Monthly Expenses']),
@@ -107,13 +108,22 @@ export default async function handler(req, res) {
       date: getDate(p.properties['Date']) || getDate(p.properties['Date ']) || getDate(p.properties['Date 1']),
     }));
 
-    // 整理支出
-    const expenses = expensesRaw.map(p => ({
-      source: getText(p.properties['Source']),
-      amount: getNum(p.properties['Amount']),
-      tag: getSelect(p.properties['Tags']),
-      date: getDate(p.properties['Date']) || getDate(p.properties['Date ']) || getDate(p.properties['日期']),
-    }));
+    // 整理支出（含 Month 關聯）
+    const expenses = expensesRaw.map(p => {
+      // Month 是 relation，取第一個關聯頁面的 ID
+      const monthRel = p.properties['Month'];
+      let monthId = '';
+      if (monthRel?.type === 'relation' && monthRel.relation?.length) {
+        monthId = monthRel.relation[0].id;
+      }
+      return {
+        source: getText(p.properties['Source']),
+        amount: getNum(p.properties['Amount']),
+        tag: getSelect(p.properties['Tags']),
+        date: getDate(p.properties['Date']) || getDate(p.properties['Date ']) || getDate(p.properties['日期']),
+        monthId,
+      };
+    });
 
     // 整理股票資產
     const stocks = stocksRaw.map(p => {

@@ -405,9 +405,17 @@ function renderOverview() {
     return Math.round(trimmed.reduce((a, b) => a + b, 0) / trimmed.length);
   }
   const avgIncome = trimmedAvg(m.map(r => r.totalIncome));
-  const avgExpense = trimmedAvg(m.map(r => r.totalExpenses));
+  // 支出：按 Notion 月份分組，排除投資類，再排除最高月
+  const expNoInvest = DATA.expenses.filter(e => e.tag !== '投資');
+  const expByMonthId = {};
+  expNoInvest.forEach(e => {
+    if (!e.monthId) return;
+    expByMonthId[e.monthId] = (expByMonthId[e.monthId] || 0) + e.amount;
+  });
+  const avgExpense = trimmedAvg(Object.values(expByMonthId));
   const curIncome = curMonth.totalIncome || 0;
-  const curExpense = curMonth.totalExpenses || 0;
+  // 本月支出也排除投資（用 monthId 對應）
+  const curExpense = curMonth.id ? (expByMonthId[curMonth.id] || 0) : 0;
   const incPct = avgIncome > 0 ? Math.round((curIncome / avgIncome) * 100) : 0;
   const expPct = avgExpense > 0 ? Math.round((curExpense / avgExpense) * 100) : 0;
 
