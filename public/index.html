@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>財富預估 — Alex & Tiffany</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;600;700&family=DM+Mono:wght@400;500&family=Sora:wght@300;400;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{
+  --bg:#fdf6f0;--bg2:#fff8f3;--bg3:#ffeee4;--card:#ffffff;--border:#f0d9cc;
+  --accent:#e8845a;--accent2:#5b9bd5;--accent3:#e8a23a;--red:#e06b7a;
+  --text:#3d2b1f;--text2:#8a6655;--text3:#b89485;
+  --font-d:'Noto Serif TC',serif;--font-b:'Sora',sans-serif;--font-m:'DM Mono',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--font-b);font-size:14px;min-height:100vh;line-height:1.6}
+.grid-bg{position:fixed;inset:0;z-index:0;pointer-events:none;
+  background-image:linear-gradient(rgba(232,132,90,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(232,132,90,.06) 1px,transparent 1px);
+  background-size:40px 40px}
+.wrap{position:relative;z-index:1;max-width:1160px;margin:0 auto;padding:40px 24px 80px}
+header{margin-bottom:32px}
+.htag{display:inline-block;font-family:var(--font-m);font-size:11px;color:var(--accent);background:rgba(232,132,90,.1);border:1px solid rgba(232,132,90,.25);padding:4px 12px;border-radius:20px;letter-spacing:.1em;margin-bottom:10px}
+h1{font-family:var(--font-d);font-size:28px;font-weight:700;margin-bottom:4px}
+.sub{color:var(--text2);font-size:13px}
+.sec{font-family:var(--font-m);font-size:11px;letter-spacing:.12em;color:var(--text3);text-transform:uppercase;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.sec::after{content:'';flex:1;height:1px;background:var(--border)}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+@media(max-width:760px){.g2,.g4{grid-template-columns:1fr 1fr}}
+@media(max-width:480px){.g2,.g4{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px}
+.scard{text-align:center;padding:14px;background:var(--card);border:1px solid var(--border);border-radius:10px}
+.slabel{font-size:11px;color:var(--text3);margin-bottom:3px;font-family:var(--font-m)}
+.sval{font-size:18px;font-weight:600;font-family:var(--font-m)}
+.green{color:var(--accent)}.cyan{color:var(--accent2)}.amber{color:var(--accent3)}.red{color:var(--red)}
+input[type=number]{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--font-m);font-size:14px;padding:8px 10px;outline:none;transition:border .2s;-moz-appearance:textfield}
+input[type=number]:focus{border-color:var(--accent)}
+input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
+label{display:block;font-size:12px;color:var(--text2);margin-bottom:4px}
+.ig{margin-bottom:10px}
+.ir{display:flex;align-items:center;gap:6px}
+.ir input{flex:1}
+.unit{font-size:12px;color:var(--text3);white-space:nowrap;font-family:var(--font-m)}
+
+/* ── 股票卡片 ── */
+.stock-panel{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+@media(max-width:900px){.stock-panel{grid-template-columns:1fr 1fr}}
+@media(max-width:480px){.stock-panel{grid-template-columns:1fr}}
+.sp{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;position:relative;overflow:hidden}
+.sp::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+.c0::before{background:#e8845a}
+.c1::before{background:#5b9bd5}
+.c2::before{background:#e8a23a}
+.c3::before{background:#e06b7a}
+.sp-ticker{font-family:var(--font-m);font-size:13px;font-weight:500;margin-bottom:2px}
+.sp-name{font-size:11px;color:var(--text3);margin-bottom:12px}
+.sp-row{display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px;font-family:var(--font-m)}
+.sp-row .k{color:var(--text3)}.sp-row .v{color:var(--text2)}
+.sp-div{border:none;border-top:1px solid var(--border);margin:10px 0}
+
+/* 配息進度區 - 核心新功能 */
+.cashflow-block{background:var(--bg3);border-radius:8px;padding:12px;margin-top:8px}
+.cf-title{font-size:10px;color:var(--text3);font-family:var(--font-m);margin-bottom:8px;letter-spacing:.06em;text-transform:uppercase}
+.cf-row{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px}
+.cf-label{font-size:11px;color:var(--text2)}
+.cf-val{font-size:13px;font-family:var(--font-m);font-weight:500}
+.cf-arrow{font-size:18px;font-weight:600;font-family:var(--font-m);margin:6px 0 2px}
+.cf-sub{font-size:10px;color:var(--text3);font-family:var(--font-m)}
+/* 小箭頭動畫 */
+.grow-indicator{display:flex;align-items:center;gap:4px;margin-top:4px}
+.arrow-up{color:var(--accent);font-size:11px;font-family:var(--font-m)}
+.cf-pct{font-size:10px;color:var(--accent);font-family:var(--font-m)}
+
+/* ── Hero ── */
+.hero{background:linear-gradient(135deg,rgba(232,132,90,.07),rgba(91,155,213,.05));border:1px solid rgba(232,132,90,.25);border-radius:16px;padding:24px 28px;margin-bottom:20px}
+.hero-grid{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:16px;text-align:center}
+@media(max-width:700px){.hero-grid{grid-template-columns:1fr 1fr}}
+.hero-val{font-family:var(--font-d);font-size:26px;font-weight:700;color:var(--accent);line-height:1.1}
+.hero-label{font-size:11px;color:var(--text2);margin-bottom:4px;font-family:var(--font-m)}
+.hero-sub{font-size:11px;color:var(--text3);margin-top:2px;font-family:var(--font-m)}
+.hero-reach{grid-column:1/-1;text-align:center;font-size:13px;color:var(--text2);font-family:var(--font-m);margin-top:8px;padding-top:12px;border-top:1px solid var(--border)}
+.hero-reach strong{color:var(--accent)}
+
+/* ── 進度條 ── */
+.pbar{margin-bottom:10px}
+.plabel{display:flex;justify-content:space-between;margin-bottom:4px;font-size:12px;color:var(--text2)}
+.ptrack{height:6px;background:var(--border);border-radius:3px;overflow:hidden}
+.pfill{height:100%;border-radius:3px;transition:width .7s ease}
+.fill-g{background:#e8845a}.fill-c{background:#5b9bd5}.fill-a{background:#e8a23a}
+.badge{display:inline-block;font-size:11px;padding:2px 8px;border-radius:20px;font-family:var(--font-m);margin-right:4px}
+.b-c{background:rgba(91,155,213,.12);color:#5b9bd5}.b-b{background:rgba(232,132,90,.12);color:#e8845a}.b-o{background:rgba(232,162,58,.12);color:#c87c1a}
+
+/* ── 圖表 ── */
+.chart-wrap{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:20px}
+.chart-wrap canvas{max-height:260px}
+.tab-row{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
+.tab{padding:5px 12px;border-radius:8px;font-size:12px;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--text2);font-family:var(--font-b);transition:all .15s}
+.tab.active{background:rgba(232,132,90,.1);border-color:rgba(232,132,90,.3);color:var(--accent)}
+
+/* ── 配息成長時間軸 ── */
+.timeline{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:20px;overflow-x:auto}
+.tl-table{width:100%;border-collapse:collapse;font-size:12px;font-family:var(--font-m);min-width:600px}
+.tl-table th{color:var(--text3);font-weight:400;text-align:right;padding:6px 10px;border-bottom:1px solid var(--border);font-size:11px}
+.tl-table th:first-child{text-align:left}
+.tl-table td{padding:7px 10px;border-bottom:1px solid rgba(42,48,69,.4);text-align:right;color:var(--text2)}
+.tl-table td:first-child{text-align:left;color:var(--text);font-weight:500}
+.tl-table tr:last-child td{border-bottom:none}
+.tl-table .hl{color:var(--accent);font-weight:500}
+.tl-table .hl2{color:var(--accent3)}
+
+/* 分解表 */
+.breakdown{width:100%;border-collapse:collapse;font-size:12px;font-family:var(--font-m)}
+.breakdown th{color:var(--text3);font-weight:400;text-align:left;padding:6px 10px;border-bottom:1px solid var(--border);font-size:11px}
+.breakdown td{padding:7px 10px;border-bottom:1px solid rgba(42,48,69,.4);color:var(--text2)}
+.breakdown td:first-child{color:var(--text);font-weight:500}
+.breakdown tr:last-child td{border-bottom:none}
+.breakdown tfoot td{color:var(--text);border-top:1px solid var(--border);padding-top:10px;font-weight:500}
+.breakdown tfoot td:last-child{color:var(--accent);font-size:14px}
+
+.goal-bar{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:20px}
+.divider{border:none;border-top:1px solid var(--border);margin:20px 0}
+.fn{font-size:11px;color:var(--text3);text-align:center;margin-top:20px;font-family:var(--font-m);line-height:1.9}
+</style>
+</head>
+<body>
+<div class="grid-bg"></div>
+<div class="wrap">
+
+<header>
+  <div style="display:flex;align-items:center;gap:16px;margin-bottom:12px">
+    <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <!-- 小豬身體 -->
+      <ellipse cx="32" cy="36" rx="20" ry="14" fill="#ffb3ba"/>
+      <!-- 小豬頭 -->
+      <circle cx="32" cy="22" r="14" fill="#ffb3ba"/>
+      <!-- 小豬耳朵 -->
+      <ellipse cx="20" cy="12" rx="6" ry="7" fill="#ffb3ba"/>
+      <ellipse cx="44" cy="12" rx="6" ry="7" fill="#ffb3ba"/>
+      <ellipse cx="20" cy="12" rx="3.5" ry="4.5" fill="#ff8fa3"/>
+      <ellipse cx="44" cy="12" rx="3.5" ry="4.5" fill="#ff8fa3"/>
+      <!-- 小豬臉 -->
+      <ellipse cx="32" cy="25" rx="7" ry="5" fill="#ff8fa3"/>
+      <!-- 鼻孔 -->
+      <circle cx="29.5" cy="25" r="1.5" fill="#d45f7a"/>
+      <circle cx="34.5" cy="25" r="1.5" fill="#d45f7a"/>
+      <!-- 眼睛 -->
+      <circle cx="26" cy="19" r="2.5" fill="#3d2b1f"/>
+      <circle cx="38" cy="19" r="2.5" fill="#3d2b1f"/>
+      <circle cx="26.8" cy="18.2" r="1" fill="white"/>
+      <circle cx="38.8" cy="18.2" r="1" fill="white"/>
+      <!-- 腮紅 -->
+      <ellipse cx="21" cy="23" rx="3.5" ry="2.5" fill="#ffccd5" opacity="0.7"/>
+      <ellipse cx="43" cy="23" rx="3.5" ry="2.5" fill="#ffccd5" opacity="0.7"/>
+
+      <!-- 小尾巴 -->
+      <path d="M52 36 Q58 30 55 38 Q52 45 56 42" stroke="#ff8fa3" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+      <!-- 錢幣 -->
+      <circle cx="50" cy="12" r="8" fill="#f5c842" opacity="0.9"/>
+      <text x="50" y="16" text-anchor="middle" font-size="9" fill="#c87c1a" font-weight="bold">$</text>
+    </svg>
+    <div>
+      <div class="htag">WEALTH PLANNER // ALEX & TIFFANY</div>
+      <h1>財富目標預估 🐷</h1>
+      <p class="sub">股票成長 × 配息再投入 × 複利 ── 每月投入越多，配息現金流越大</p>
+    </div>
+    <svg width="56" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" style="transform:scaleX(-1)">
+      <!-- 小豬身體 -->
+      <ellipse cx="32" cy="36" rx="18" ry="12" fill="#ffd6b0"/>
+      <!-- 小豬頭 -->
+      <circle cx="32" cy="22" r="13" fill="#ffd6b0"/>
+      <!-- 小豬耳朵 -->
+      <ellipse cx="21" cy="12" rx="5.5" ry="6.5" fill="#ffd6b0"/>
+      <ellipse cx="43" cy="12" rx="5.5" ry="6.5" fill="#ffd6b0"/>
+      <ellipse cx="21" cy="12" rx="3" ry="4" fill="#ffaa70"/>
+      <ellipse cx="43" cy="12" rx="3" ry="4" fill="#ffaa70"/>
+      <!-- 小豬臉 -->
+      <ellipse cx="32" cy="25" rx="6.5" ry="4.5" fill="#ffaa70"/>
+      <!-- 鼻孔 -->
+      <circle cx="29.5" cy="25" r="1.5" fill="#c47030"/>
+      <circle cx="34.5" cy="25" r="1.5" fill="#c47030"/>
+      <!-- 眼睛 -->
+      <circle cx="26" cy="19" r="2.5" fill="#3d2b1f"/>
+      <circle cx="38" cy="19" r="2.5" fill="#3d2b1f"/>
+      <circle cx="26.8" cy="18.2" r="1" fill="white"/>
+      <circle cx="38.8" cy="18.2" r="1" fill="white"/>
+      <!-- 腮紅 -->
+      <ellipse cx="21" cy="23" rx="3" ry="2" fill="#ffc4a0" opacity="0.8"/>
+      <ellipse cx="43" cy="23" rx="3" ry="2" fill="#ffc4a0" opacity="0.8"/>
+
+      <!-- 小尾巴 -->
+      <path d="M52 36 Q58 30 55 38 Q52 45 56 42" stroke="#ffaa70" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+      <!-- 存錢桶 -->
+      <rect x="44" y="4" width="14" height="12" rx="3" fill="#5b9bd5" opacity="0.85"/>
+      <rect x="49" y="2" width="4" height="4" rx="1" fill="#5b9bd5" opacity="0.85"/>
+      <line x1="44" y1="9" x2="58" y2="9" stroke="white" stroke-width="1" opacity="0.5"/>
+      <text x="51" y="14" text-anchor="middle" font-size="7" fill="white" font-weight="bold">$</text>
+    </svg>
+  </div>
+</header>
+
+
+<!-- Notion 同步列 -->
+<div style="display:flex;align-items:center;justify-content:space-between;background:#fff8f3;border:1px solid #f0d9cc;border-radius:10px;padding:10px 16px;margin-bottom:16px;flex-wrap:wrap;gap:8px">
+  <span id="sync-status" style="font-family:var(--font-m);font-size:12px;color:#b89485">🐷 正在從 Notion 讀取最新股票資料...</span>
+  <button id="sync-btn" onclick="syncFromNotion()" style="font-family:var(--font-b);font-size:12px;padding:5px 16px;border-radius:8px;border:1px solid rgba(232,132,90,.4);background:rgba(232,132,90,.08);color:#e8845a;cursor:pointer">🔄 重新同步</button>
+</div>
+
+<!-- Notion 現金分析 -->
+<div style="background:rgba(232,132,90,.04);border:1px solid rgba(232,132,90,.15);border-radius:12px;padding:16px 20px;margin-bottom:20px;font-family:var(--font-m);font-size:12px">
+  <div style="color:var(--accent);font-size:11px;letter-spacing:.08em;margin-bottom:10px">// NOTION ❤️❤️基金 累積餘額（從你的圖表讀取）</div>
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px">
+    <div><div style="color:var(--text3);margin-bottom:2px">202505 峰值</div><div style="color:var(--text);font-size:14px;font-weight:500">NT$125,450</div></div>
+    <div><div style="color:var(--text3);margin-bottom:2px">202510 高點</div><div style="color:var(--text);font-size:14px;font-weight:500">NT$269,500</div></div>
+    <div><div style="color:var(--text3);margin-bottom:2px">202602</div><div style="color:var(--accent2);font-size:14px;font-weight:500">NT$308,980</div></div>
+    <div><div style="color:var(--text3);margin-bottom:2px">202603（現在）</div><div style="color:var(--accent);font-size:14px;font-weight:500">NT$325,370</div></div>
+  </div>
+  <div style="color:var(--text3);margin-top:10px;font-size:11px;line-height:1.7">
+    此為 ❤️❤️基金 的累積餘額，直接從你的 Notion 圖表讀取。202603 最新餘額 NT$325,370 即為你現在的真實銀行現金。<br>
+    每月淨存入估約 NT$16,390（202602→202603 增加量 325,370-308,980）。
+  </div>
+</div>
+
+<!-- 全局設定 -->
+<div class="goal-bar">
+  <div class="sec" style="margin-bottom:14px">全局目標設定</div>
+  <div class="g2">
+    <div>
+      <div class="ig"><label>目標財富（萬元）</label><div class="ir"><input type="number" id="goal" value="500" step="50"><span class="unit">萬</span></div></div>
+      <div class="ig"><label>期望達成年限</label><div class="ir"><input type="number" id="yrs" value="10" step="1" min="1" max="40"><span class="unit">年</span></div></div>
+    </div>
+    <div>
+      <div class="ig">
+        <label>每月淨存入現金（Notion 圖表推算約 NT$16,390）</label>
+        <div class="ir"><input type="number" id="cash-save" value="16390" step="500"><span class="unit">NT$</span></div>
+      </div>
+      <div class="ig">
+        <label>目前銀行現金（Notion ❤️❤️基金 202603 餘額）</label>
+        <div class="ir"><input type="number" id="init-cash" value="325370" step="1000"><span class="unit">NT$</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 股票面板 -->
+<div class="sec">各股票設定 ── 調整每月投入，看配息如何隨時間增長</div>
+<div class="stock-panel" id="stockPanel"></div>
+
+<!-- 現金流摘要 -->
+<div class="sec">整體現金流快照</div>
+<div class="g4" id="cfCards"></div>
+
+<hr class="divider">
+
+<!-- 配息成長時間軸 -->
+<div class="sec">配息現金流成長時間軸（每月可領到多少？）</div>
+<div class="timeline">
+  <table class="tl-table" id="tlTable"></table>
+</div>
+
+<!-- Hero 結果 -->
+<div class="sec">財富預測結果</div>
+<div class="hero">
+  <div class="hero-grid" id="heroGrid"></div>
+</div>
+
+<!-- 情境比較 -->
+<div class="card" style="margin-bottom:20px;padding:22px">
+  <div style="font-size:13px;color:var(--text2);margin-bottom:14px">三種情境在目標年限的預估總財富</div>
+  <div class="pbar">
+    <div class="plabel"><span><span class="badge b-c">保守</span> 報酬率 ×0.6</span><span id="vc" style="font-family:var(--font-m)">—</span></div>
+    <div class="ptrack"><div class="pfill fill-c" id="bc" style="width:0%"></div></div>
+  </div>
+  <div class="pbar" style="margin-top:10px">
+    <div class="plabel"><span><span class="badge b-b">基準</span> 報酬率 ×1.0（你設定的）</span><span id="vb" style="font-family:var(--font-m)">—</span></div>
+    <div class="ptrack"><div class="pfill fill-g" id="bb" style="width:0%"></div></div>
+  </div>
+  <div class="pbar" style="margin-top:10px">
+    <div class="plabel"><span><span class="badge b-o">樂觀</span> 報酬率 ×1.3</span><span id="vo" style="font-family:var(--font-m)">—</span></div>
+    <div class="ptrack"><div class="pfill fill-a" id="bo" style="width:0%"></div></div>
+  </div>
+</div>
+
+<!-- 圖表 -->
+<div class="chart-wrap">
+  <div class="sec" style="margin-bottom:12px">資產成長曲線</div>
+  <div class="tab-row">
+    <button class="tab active" onclick="setView('total',event)">總資產</button>
+    <button class="tab" onclick="setView('stock',event)">存股市值</button>
+    <button class="tab" onclick="setView('divMonthly',event)">每月配息</button>
+    <button class="tab" onclick="setView('divCum',event)">累積配息</button>
+    <button class="tab" onclick="setView('cash',event)">現金</button>
+  </div>
+  <canvas id="chart"></canvas>
+</div>
+
+<!-- 財富分解表 -->
+<div class="sec">財富分解（<span id="brkYr">10</span> 年後預估）</div>
+<div class="card" style="padding:20px;margin-bottom:20px">
+  <table class="breakdown" id="brkTable"></table>
+</div>
+
+<div class="fn">
+  資料來源：Notion ❤️❤️基金 真實記帳 2025/05–2026/03<br>
+  配息以「年化配息率 ÷ 12」每月計算 ── 配息自動再投入同支股票（複利滾入）<br>
+  每月新增投入 → 持股增加 → 配息增加 → 再投入更多 → 複利加速<br>
+  實際報酬因市況而異 ── 不構成投資建議
+</div>
+</div>
+
+<script>
+// 股票資料 — 同步自 Notion ❤️❤️基金（2026/04/01）
+const DEFAULT_STOCKS = [
+  { id:'0050', name:'元大台灣50',      cls:'c0', color:'#e8845a',
+    price:75.45, held:2509, initVal:2509*75.45,
+    growthRate:0.135, divRate:0.015, monthlyAdd:10000, divToCash:false,
+    desc:'市值型ETF，年化含息報酬約15%' },
+  { id:'0056', name:'元大高股息',       cls:'c1', color:'#5b9bd5',
+    price:37.46, held:1000, initVal:1000*37.46,
+    growthRate:0.025, divRate:0.095, monthlyAdd:5000, divToCash:false,
+    desc:'季配息ETF，殖利率約9.5%' },
+  { id:'STRC', name:'Strategy特別股',  cls:'c2', color:'#e8a23a',
+    price:100.02, held:4, initVal:4*100.02*31.5,
+    growthRate:0.0, divRate:0.115, monthlyAdd:3000, divToCash:true,
+    desc:'固定11.5%年化配息，每月配，股價不成長' },
+  { id:'川湖', name:'川湖科技 2059',   cls:'c3', color:'#e06b7a',
+    price:3615, held:9, initVal:9*3615,
+    growthRate:0.17, divRate:0.011, monthlyAdd:5000, divToCash:false,
+    desc:'AI伺服器滑軌，成長型' },
+];
+const PALETTE = ['#e8845a','#5b9bd5','#e8a23a','#e06b7a','#7cb87c','#9b7ec8'];
+const CLS_LIST = ['c0','c1','c2','c3','c4','c5'];
+let STOCKS = JSON.parse(JSON.stringify(DEFAULT_STOCKS));
+
+let chartInst=null, curView='total', cData={};
+
+function fmt(n){
+  if(n>=10000000) return (n/10000000).toFixed(1)+'千萬';
+  if(n>=1000000)  return (n/10000).toFixed(0)+'萬';
+  if(n>=10000)    return (n/10000).toFixed(1)+'萬';
+  return Math.round(n).toLocaleString('zh-TW');
+}
+function fmtNT(n){return 'NT$'+fmt(n)}
+function fmtMo(n){
+  if(n>=10000) return 'NT$'+fmt(n);
+  return 'NT$'+Math.round(n).toLocaleString('zh-TW');
+}
+
+// ── 核心模擬：單支股票逐月 ──
+// divToCash=true：配息流入現金，divToCash=false：配息再投入
+function simStock(months, initVal, monthlyAdd, growthRate, divRate, divToCash=false){
+  let val=initVal, cumDiv=0, cashFromDiv=0;
+  const md=divRate/12, mg=growthRate/12;
+  const result=[{month:0, val, monthlyDiv:(initVal+monthlyAdd)*md, cumDiv, cashFromDiv}];
+  for(let m=1;m<=months;m++){
+    const div=val*md;
+    cumDiv+=div;
+    if(divToCash){ cashFromDiv+=div; val=val*(1+mg)+monthlyAdd; }
+    else { val=val*(1+mg)+div+monthlyAdd; }
+    result.push({month:m, val, monthlyDiv:val*md, cumDiv, cashFromDiv});
+  }
+  return result;
+}
+
+// ── 計算全部合計（逐月）──
+function calcAll(years, p, mult=1.0){
+  const mos=years*12;
+  const allSim=p.stocks.map(s=>simStock(mos, s.initVal, s.monthlyAdd, s.growthRate*mult, s.divRate*mult, s.divToCash||false));
+  const result=[];
+  for(let mo=0;mo<=mos;mo++){
+    const stockTotal=allSim.reduce((s,d)=>s+d[mo].val,0);
+    const divMonthly=allSim.reduce((s,d)=>s+d[mo].monthlyDiv,0);
+    const divCum=allSim.reduce((s,d)=>s+d[mo].cumDiv,0);
+    const strcCashDiv=allSim.reduce((s,d)=>s+d[mo].cashFromDiv,0);
+    const cash=p.initCash+p.cashSave*mo+strcCashDiv;
+    result.push({mo, yr:mo/12, stockTotal, divMonthly, divCum, cash, strcCashDiv, total:stockTotal+cash});
+  }
+  return result;
+}
+
+// ── 建立股票卡片 ──
+function buildPanel(){
+  document.getElementById('stockPanel').innerHTML = STOCKS.map((s,i)=>`
+    <div class="sp ${s.cls}">
+      <div class="sp-ticker">${s.id}</div>
+      <div class="sp-name">${s.name}</div>
+      <div class="sp-row"><span class="k">現價</span><span class="v">${s.id==='STRC'?'$'+s.price:'NT$'+s.price}</span></div>
+      <div class="sp-row"><span class="k">持股</span><span class="v">${s.held.toLocaleString()} 股</span></div>
+      <div class="sp-row"><span class="k">現值</span><span class="v">${fmtNT(s.initVal)}</span></div>
+      <div class="sp-div"></div>
+      <div class="ig"><label>每月投入</label>
+        <div class="ir"><input type="number" id="add-${i}" value="${s.monthlyAdd}" step="1000"><span class="unit">NT$</span></div></div>
+      <div class="ig"><label>年化股價成長率</label>
+        <div class="ir"><input type="number" id="gr-${i}" value="${(s.growthRate*100).toFixed(1)}" step="0.5" min="0" max="40"><span class="unit">%</span></div></div>
+      <div class="ig"><label>年化配息率</label>
+        <div class="ir"><input type="number" id="dr-${i}" value="${(s.divRate*100).toFixed(1)}" step="0.5" min="0" max="20"><span class="unit">%</span></div></div>
+      <div class="cashflow-block">
+        <div class="cf-title">月配息成長（隨投入增加）</div>
+        <div class="cf-row"><span class="cf-label">現在</span><span class="cf-val green" id="cf-now-${i}">—</span></div>
+        <div class="cf-row"><span class="cf-label">1年後</span><span class="cf-val cyan" id="cf-1y-${i}">—</span></div>
+        <div class="cf-row"><span class="cf-label">3年後</span><span class="cf-val amber" id="cf-3y-${i}">—</span></div>
+        <div class="cf-row"><span class="cf-label">5年後</span><span class="cf-val" style="color:var(--text)" id="cf-5y-${i}">—</span></div>
+        <div class="grow-indicator"><span class="arrow-up">↑</span><span class="cf-pct" id="cf-growth-${i}">計算中...</span></div>
+      </div>
+      ${s.divToCash
+        ? '<div style="font-size:10px;background:rgba(232,162,58,.12);color:#c87c1a;border-radius:4px;padding:3px 6px;margin-top:6px;font-family:var(--font-m)">配息流入現金，不再投入</div>'
+        : '<div style="font-size:10px;background:rgba(232,132,90,.08);color:var(--accent);border-radius:4px;padding:3px 6px;margin-top:6px;font-family:var(--font-m)">配息再投入本股複利</div>'}
+      <div style="font-size:10px;color:var(--text3);margin-top:6px">${s.desc}</div>
+    </div>
+  `).join('');
+}
+
+function getP(){
+  return {
+    stocks: STOCKS.map((s,i)=>({
+      ...s,
+      monthlyAdd: +document.getElementById(`add-${i}`).value||0,
+      growthRate: (+document.getElementById(`gr-${i}`).value||0)/100,
+      divRate:    (+document.getElementById(`dr-${i}`).value||0)/100,
+    })),
+    goal:      (+document.getElementById('goal').value||500)*10000,
+    yrs:       +document.getElementById('yrs').value||10,
+    cashSave:  +document.getElementById('cash-save').value||0,
+    initCash:  +document.getElementById('init-cash').value||0,
+  };
+}
+
+function update(){
+  const p=getP();
+
+  // 各股票卡片配息成長
+  p.stocks.forEach((s,i)=>{
+    const sim=simStock(60,s.initVal,s.monthlyAdd,s.growthRate,s.divRate,s.divToCash||false);
+    const now=(s.initVal+s.monthlyAdd)*s.divRate/12;
+    const y1=sim[12].monthlyDiv, y3=sim[36].monthlyDiv, y5=sim[60].monthlyDiv;
+    const pct=now>0?Math.round((y5-now)/now*100):0;
+    document.getElementById(`cf-now-${i}`).textContent=fmtMo(now);
+    document.getElementById(`cf-1y-${i}`).textContent=fmtMo(y1);
+    document.getElementById(`cf-3y-${i}`).textContent=fmtMo(y3);
+    document.getElementById(`cf-5y-${i}`).textContent=fmtMo(y5);
+    document.getElementById(`cf-growth-${i}`).textContent=`5年後配息 +${pct}%`;
+  });
+
+  // 整體現金流卡片
+  const allSeries=calcAll(Math.max(p.yrs,1),p);
+  const now0=allSeries[0], after1y=allSeries[12], afterNy=allSeries[p.yrs*12];
+  const totalMonthlyAdd=p.stocks.reduce((s,st)=>s+st.monthlyAdd,0);
+  const nowDivTotal=now0.divMonthly;
+  const base1yAllDiv=after1y.divMonthly;
+  const baseNyAllDiv=afterNy.divMonthly;
+  document.getElementById('cfCards').innerHTML=`
+    <div class="scard"><div class="slabel">每月存股投入（合計）</div><div class="sval cyan">${fmtNT(totalMonthlyAdd)}</div></div>
+    <div class="scard"><div class="slabel">現在每月配息（全部加總）</div><div class="sval amber">${fmtNT(nowDivTotal)}</div><div style="font-size:10px;color:var(--text3);margin-top:2px;font-family:var(--font-m)">0050+0056+STRC+川湖</div></div>
+    <div class="scard"><div class="slabel">1年後每月配息（全部）</div><div class="sval green">${fmtNT(base1yAllDiv)}</div><div style="font-size:10px;color:var(--text3);margin-top:2px;font-family:var(--font-m)">含每月投入累積後</div></div>
+    <div class="scard"><div class="slabel">${p.yrs}年後每月配息（全部）</div><div class="sval" style="color:var(--text)">${fmtNT(baseNyAllDiv)}</div><div style="font-size:10px;color:var(--text3);margin-top:2px;font-family:var(--font-m)">0050+0056+STRC+川湖</div></div>
+  `;
+
+  // 配息時間軸表格
+  document.getElementById('brkYr').textContent=p.yrs;
+  const tlYears=[0,1,2,3,5,7,10,15,20].filter(y=>y<=p.yrs+5);
+  const stockColors=['#e8845a','#5b9bd5','#e8a23a','#e06b7a','#7cb87c','#9b7ec8'];
+  const perStockSims=p.stocks.map(s=>simStock(Math.max(p.yrs,20)*12,s.initVal,s.monthlyAdd,s.growthRate,s.divRate,s.divToCash||false));
+  document.getElementById('tlTable').innerHTML=`
+    <thead><tr>
+      <th>年份</th>
+      ${p.stocks.map((s,i)=>`<th style="color:${stockColors[i]}">${s.id}<br><span style="font-size:9px;color:var(--text3)">月配息</span></th>`).join('')}
+      <th class="hl">合計月配息</th><th class="hl2">合計市值</th>
+    </tr></thead>
+    <tbody>
+    ${tlYears.map(y=>{
+      const mos=y*12;
+      const perDiv=perStockSims.map(sim=>sim[mos].monthlyDiv);
+      const totalDiv=perDiv.reduce((a,b)=>a+b,0);
+      const totalVal=perStockSims.reduce((s,sim)=>s+sim[mos].val,0);
+      return `<tr>
+        <td>${y===0?'現在':`+${y}年`}</td>
+        ${perDiv.map(d=>`<td>${fmtMo(d)}</td>`).join('')}
+        <td class="hl">${fmtMo(totalDiv)}</td>
+        <td class="hl2">${fmtNT(totalVal)}</td>
+      </tr>`;
+    }).join('')}
+    </tbody>
+  `;
+
+  // Hero
+  const finalBase=calcAll(p.yrs,p).at(-1);
+  const finalCons=calcAll(p.yrs,p,0.6).at(-1);
+  const finalOpt=calcAll(p.yrs,p,1.3).at(-1);
+  const perFinal=p.stocks.map((s,i)=>perStockSims[i][p.yrs*12]);
+  document.getElementById('heroGrid').innerHTML=`
+    <div><div class="hero-label">預計總財富</div><div class="hero-val">${fmtNT(finalBase.total)}</div><div class="hero-sub">${p.yrs} 年後</div></div>
+    <div><div class="hero-label">存股市值</div><div class="hero-val" style="color:var(--accent2)">${fmtNT(finalBase.stockTotal)}</div><div class="hero-sub">含配息再投入</div></div>
+    <div><div class="hero-label">${p.yrs}年後每月配息</div><div class="hero-val" style="color:var(--accent3)">${fmtNT(finalBase.divMonthly)}</div><div class="hero-sub">被動收入</div></div>
+    <div><div class="hero-label">累積領到配息</div><div class="hero-val" style="color:var(--text)">${fmtNT(finalBase.divCum)}</div><div class="hero-sub">全期間合計</div></div>
+    <div class="hero-reach">
+      ${finalBase.total>=p.goal
+        ? `<strong>已達標！</strong> ${p.yrs}年後預計 ${fmtNT(finalBase.total)} ── 超過目標 ${fmtNT(p.goal)}`
+        : (()=>{let ry=null;for(let y=1;y<=40;y++){if(calcAll(y,p).at(-1).total>=p.goal){ry=y;break}}
+            return ry?`以目前計畫，預計 <strong>${ry} 年</strong>（${new Date().getFullYear()+ry} 年）達到 ${fmtNT(p.goal)} 目標`
+              :`40年內最高 ${fmtNT(calcAll(40,p).at(-1).total)}，距目標仍有差距`;})()
+      }
+    </div>
+  `;
+
+  // 進度條
+  const maxV=Math.max(finalCons.total,finalBase.total,finalOpt.total,p.goal);
+  document.getElementById('vc').textContent=fmtNT(finalCons.total);
+  document.getElementById('vb').textContent=fmtNT(finalBase.total);
+  document.getElementById('vo').textContent=fmtNT(finalOpt.total);
+  document.getElementById('bc').style.width=Math.min(100,finalCons.total/maxV*100)+'%';
+  document.getElementById('bb').style.width=Math.min(100,finalBase.total/maxV*100)+'%';
+  document.getElementById('bo').style.width=Math.min(100,finalOpt.total/maxV*100)+'%';
+
+  // 分解表
+  document.getElementById('brkTable').innerHTML=`
+    <thead><tr><th>股票</th><th>現值</th><th>月投入</th><th>年化報酬</th><th>${p.yrs}年後市值</th><th>月配息（${p.yrs}年後）</th><th>累積配息</th></tr></thead>
+    <tbody>
+    ${p.stocks.map((s,i)=>`<tr>
+      <td style="color:${stockColors[i]}">${s.id} ${s.name}</td>
+      <td>${fmtNT(s.initVal)}</td><td>${fmtNT(s.monthlyAdd)}/月</td>
+      <td>${((s.growthRate+s.divRate)*100).toFixed(1)}%</td>
+      <td>${fmtNT(perFinal[i].val)}</td>
+      <td style="color:#c87c1a">${fmtMo(perFinal[i].monthlyDiv)}</td>
+      <td>${fmtNT(perFinal[i].cumDiv)}</td>
+    </tr>`).join('')}
+    <tr><td>現金</td><td>${fmtNT(p.initCash)}</td><td>${fmtNT(p.cashSave)}/月</td><td>—</td><td>${fmtNT(finalBase.cash)}</td><td>—</td><td>—</td></tr>
+    </tbody>
+    <tfoot><tr>
+      <td>合計</td><td>${fmtNT(p.stocks.reduce((s,st)=>s+st.initVal,0)+p.initCash)}</td>
+      <td>${fmtNT(p.stocks.reduce((s,st)=>s+st.monthlyAdd,0)+p.cashSave)}/月</td>
+      <td>—</td><td>${fmtNT(finalBase.total)}</td>
+      <td style="color:#c87c1a">${fmtMo(finalBase.divMonthly)}</td>
+      <td style="color:#c87c1a">${fmtNT(finalBase.divCum)}</td>
+    </tr></tfoot>
+  `;
+
+  // 圖表
+  const longYrs=Math.max(p.yrs+5,20);
+  const bLong=calcAll(longYrs,p,1.0);
+  const cLong=calcAll(longYrs,p,0.6);
+  const oLong=calcAll(longYrs,p,1.3);
+  const yrPts=bLong.filter(d=>d.mo%12===0);
+  const yrC=cLong.filter(d=>d.mo%12===0);
+  const yrO=oLong.filter(d=>d.mo%12===0);
+  cData={yrPts,yrC,yrO,goal:p.goal,labels:yrPts.map(d=>d.yr===0?'現在':`+${d.yr}年`)};
+  renderChart(curView);
+}
+
+function renderChart(view){
+  const{yrPts,yrC,yrO,goal,labels}=cData;
+  const fld=view==='stock'?'stockTotal':view==='divMonthly'?'divMonthly':view==='divCum'?'divCum':view==='cash'?'cash':'total';
+  const ctx=document.getElementById('chart').getContext('2d');
+  if(chartInst) chartInst.destroy();
+  chartInst=new Chart(ctx,{
+    type:'line',
+    data:{labels,datasets:[
+      {label:'樂觀×1.3',data:yrO.map(d=>Math.round(d[fld])),borderColor:'#e8a23a',backgroundColor:'rgba(232,162,58,.04)',borderWidth:1.5,pointRadius:0,tension:.4,borderDash:[5,3]},
+      {label:'基準',data:yrPts.map(d=>Math.round(d[fld])),borderColor:'#e8845a',backgroundColor:'rgba(232,132,90,.08)',borderWidth:2.5,pointRadius:0,tension:.4,fill:true},
+      {label:'保守×0.6',data:yrC.map(d=>Math.round(d[fld])),borderColor:'#5b9bd5',backgroundColor:'transparent',borderWidth:1.5,pointRadius:0,tension:.4,borderDash:[2,3]},
+      ...(view==='total'?[{label:'目標',data:Array(labels.length).fill(goal),borderColor:'rgba(224,107,122,.5)',backgroundColor:'transparent',borderWidth:1,pointRadius:0,borderDash:[6,4]}]:[]),
+    ]},
+    options:{
+      responsive:true,maintainAspectRatio:true,
+      interaction:{mode:'index',intersect:false},
+      plugins:{
+        legend:{labels:{color:'#8a6655',font:{family:'DM Mono',size:11},boxWidth:16,padding:12}},
+        tooltip:{backgroundColor:'#fff8f3',borderColor:'#f0d9cc',borderWidth:1,titleColor:'#8a6655',bodyColor:'#3d2b1f',
+          titleFont:{family:'DM Mono',size:11},bodyFont:{family:'DM Mono',size:12},
+          callbacks:{label:c=>` ${c.dataset.label}: NT$${c.raw.toLocaleString('zh-TW')}`}}
+      },
+      scales:{
+        x:{grid:{color:'rgba(240,217,204,.6)'},ticks:{color:'#b89485',font:{family:'DM Mono',size:10},maxTicksLimit:12}},
+        y:{grid:{color:'rgba(240,217,204,.6)'},ticks:{color:'#b89485',font:{family:'DM Mono',size:10},
+          callback:v=>v>=1000000?(v/10000).toFixed(0)+'萬':(v/1000).toFixed(0)+'K'}}
+      }
+    }
+  });
+}
+
+function setView(v,e){
+  curView=v;
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  e.target.classList.add('active');
+  renderChart(v);
+}
+
+buildPanel();
+document.querySelectorAll('input').forEach(el=>{el.addEventListener('input',update);el.addEventListener('change',update)});
+update();
+
+// ── Notion 即時同步 ──
+// 用 Claude API + Notion MCP 讀取最新持股數量和股價
+async function syncFromNotion(){
+  const statusEl = document.getElementById('sync-status');
+  const btn = document.getElementById('sync-btn');
+  statusEl.textContent = '🔄 同步中，請稍候...';
+  statusEl.style.color = '#b89485';
+  btn.disabled = true;
+  try {
+    // 呼叫 Vercel Serverless Function（後端代理，無 CORS 問題）
+    const res = await fetch('/api/notion');
+    if (!res.ok) throw new Error('API 錯誤 ' + res.status);
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    const notionStocks = data.stocks;
+    if (!notionStocks || !notionStocks.length) throw new Error('沒有收到資料');
+
+    let updated = 0;
+    notionStocks.forEach(ns => {
+      const idx = STOCKS.findIndex(s => s.id === ns.name);
+      const isTW = !ns.market || ns.market.includes('台');
+      const fx = isTW ? 1 : 31.5;
+      if (idx !== -1) {
+        // 更新現有股票的股價和持股數量
+        STOCKS[idx].price   = ns.price;
+        STOCKS[idx].held    = ns.held || STOCKS[idx].held;
+        STOCKS[idx].initVal = ns.price * (ns.held || STOCKS[idx].held) * fx;
+        updated++;
+      } else if (ns.name) {
+        // Notion 有新股票，自動加入卡片
+        const i = STOCKS.length;
+        STOCKS.push({
+          id: ns.name, name: ns.name,
+          cls: ['c0','c1','c2','c3','c4','c5'][i%6],
+          color: ['#e8845a','#5b9bd5','#e8a23a','#e06b7a','#7cb87c','#9b7ec8'][i%6],
+          price: ns.price, held: ns.held, initVal: ns.price * ns.held * fx,
+          growthRate: 0.1, divRate: 0.05, monthlyAdd: 5000, divToCash: false,
+          desc: '新增股票（請調整成長率和配息率）',
+        });
+        updated++;
+      }
+    });
+
+    buildPanel();
+    document.querySelectorAll('input').forEach(el=>{el.addEventListener('input',update);el.addEventListener('change',update);});
+    update();
+    const t = new Date(data.fetchedAt).toLocaleString('zh-TW');
+    statusEl.textContent = `✓ 已從 Notion 同步 ${updated} 支股票（${t}）`;
+    statusEl.style.color = '#e8845a';
+  } catch(e) {
+    statusEl.textContent = '⚠ ' + e.message + '（使用預設資料）';
+    statusEl.style.color = '#e06b7a';
+    console.error(e);
+  }
+  btn.disabled = false;
+}
+
+// 頁面載入時自動同步
+syncFromNotion();
+</script>
+</body>
+</html>
