@@ -393,54 +393,65 @@ function renderOverview() {
     options: chartOpts('NT$')
   });
 
-  // Monthly gauge - income as mountain climbing, expenses as ocean diving
+  // Monthly gauge - find CURRENT month (YYYYMM based on today)
+  const now = new Date();
+  const curMonthKey = String(now.getFullYear()) + String(now.getMonth() + 1).padStart(2, '0');
+  const curMonth = m.find(r => r.name === curMonthKey) || m[m.length - 1] || {};
   const avgIncome = DATA.monthly.length ? totalIncome / DATA.monthly.length : 0;
   const avgExpense = DATA.monthly.length ? totalExpenses / DATA.monthly.length : 0;
-  // Current month: find latest month
-  const latestMonth = m[m.length - 1] || {};
-  const curIncome = latestMonth.totalIncome || 0;
-  const curExpense = latestMonth.totalExpenses || 0;
-  const incPct = avgIncome > 0 ? Math.min((curIncome / avgIncome) * 100, 200) : 0;
-  const expPct = avgExpense > 0 ? Math.min((curExpense / avgExpense) * 100, 200) : 0;
-  // Person position (0-100% of scene height)
-  const incPos = Math.min(Math.max(incPct / 2, 5), 90);
-  const expPos = Math.min(Math.max(expPct / 2, 5), 90);
-  const avgIncPos = 50; // average line at 50%
-  const avgExpPos = 50;
+  const curIncome = curMonth.totalIncome || 0;
+  const curExpense = curMonth.totalExpenses || 0;
+  const incPct = avgIncome > 0 ? Math.round((curIncome / avgIncome) * 100) : 0;
+  const expPct = avgExpense > 0 ? Math.round((curExpense / avgExpense) * 100) : 0;
 
-  const incMsg = incPct >= 100
-    ? `已達平均 ${Math.round(incPct)}%！繼續攻頂！`
-    : `距離平均還差 ${fmtNT(avgIncome - curIncome)}`;
-  const expMsg = expPct >= 100
-    ? `已超過平均 ${Math.round(expPct)}%！注意溺水！`
-    : `低於平均，浮在水面上！`;
+  // Mountain: higher = more income = better. 10 levels of mountain
+  const incLevel = Math.min(Math.floor(incPct / 10), 10);
+  const mountainSteps = ['🏕️ 營地出發','🥾 山腳','🚶 步道','🧗 岩壁','⛰️ 半山腰','🌲 森林線','🏔️ 稜線','☁️ 雲端','🦅 鷹巢','⛅ 接近山頂','🏁 登頂！'];
+  const mountainEmoji = ['🏕️','🥾','🚶','🧗','⛰️','🌲','🏔️','☁️','🦅','⛅','🏁'];
+
+  // Ocean: higher expense = deeper underwater = worse
+  const expLevel = Math.min(Math.floor(expPct / 10), 10);
+  const oceanSteps = ['☀️ 陽光沙灘','🏖️ 淺灘','🤿 浮潛','🐠 珊瑚礁','🐢 海龜區','🐙 深潛','🦈 鯊魚出沒','🌊 暗流','🐋 深海','🫧 快沒氧了','💀 溺水！'];
+  const oceanEmoji = ['☀️','🏖️','🤿','🐠','🐢','🐙','🦈','🌊','🐋','🫧','💀'];
 
   document.getElementById('monthlyGauge').innerHTML = `
     <div class="gauge-card">
       <div class="gauge-header"><span class="icon">🏔️</span><div><div class="title">本月收入 — 爬山攻頂</div></div></div>
       <div class="gauge-stats">
-        <div><div class="gauge-stat-label">本月（${latestMonth.name || '-'}）</div><div class="gauge-stat-val" style="color:var(--green)">${fmtNT(curIncome)}</div></div>
+        <div><div class="gauge-stat-label">本月（${curMonth.name || curMonthKey}）</div><div class="gauge-stat-val" style="color:var(--green)">${fmtNT(curIncome)}</div></div>
         <div><div class="gauge-stat-label">月平均</div><div class="gauge-stat-val">${fmtNT(avgIncome)}</div></div>
       </div>
-      <div class="gauge-scene gauge-scene-mountain">
-        <div class="gauge-bar gauge-bar-income" style="height:${incPos}%"></div>
-        <div class="gauge-avg-line" style="bottom:${avgIncPos}%"><span class="gauge-avg-label">平均</span></div>
-        <div class="gauge-person" style="bottom:${incPos - 5}%;left:50%;transform:translateX(-50%)">${incPct >= 100 ? '🧗' : '🥾'}</div>
+      <div style="background:linear-gradient(180deg,#a5d6a7 0%,#66bb6a 50%,#2e7d32 100%);border-radius:10px;padding:16px;position:relative;min-height:140px">
+        <div style="text-align:center;font-size:48px;line-height:1;margin-bottom:8px">${mountainEmoji[incLevel]}</div>
+        <div style="text-align:center;font-size:14px;font-weight:600;color:white;text-shadow:0 1px 3px rgba(0,0,0,.3);margin-bottom:4px">${mountainSteps[incLevel]}</div>
+        <div style="display:flex;justify-content:center;gap:3px;margin:10px 0">
+          ${Array.from({length:10}, (_, i) => `<div style="width:20px;height:8px;border-radius:4px;background:${i < incLevel ? 'rgba(255,255,255,.9)' : 'rgba(255,255,255,.25)'}"></div>`).join('')}
+        </div>
+        <div style="text-align:center;font-size:20px;font-weight:700;color:white;text-shadow:0 1px 3px rgba(0,0,0,.3)">${incPct}%</div>
+        <div style="text-align:center;font-size:11px;color:rgba(255,255,255,.8);font-family:var(--font-m)">目標：月平均 ${fmtNT(avgIncome)}</div>
       </div>
-      <div class="gauge-pct" style="color:${incPct >= 100 ? 'var(--green)' : 'var(--accent3)'}">${incMsg}</div>
+      <div class="gauge-pct" style="color:${incPct >= 100 ? 'var(--green)' : 'var(--accent3)'}">
+        ${incPct >= 100 ? `登頂成功！已達平均 ${incPct}%` : `還差 ${fmtNT(avgIncome - curIncome)} 到山頂`}
+      </div>
     </div>
     <div class="gauge-card">
       <div class="gauge-header"><span class="icon">🌊</span><div><div class="title">本月支出 — 浮潛水位</div></div></div>
       <div class="gauge-stats">
-        <div><div class="gauge-stat-label">本月（${latestMonth.name || '-'}）</div><div class="gauge-stat-val" style="color:var(--red)">${fmtNT(curExpense)}</div></div>
+        <div><div class="gauge-stat-label">本月（${curMonth.name || curMonthKey}）</div><div class="gauge-stat-val" style="color:var(--red)">${fmtNT(curExpense)}</div></div>
         <div><div class="gauge-stat-label">月平均</div><div class="gauge-stat-val">${fmtNT(avgExpense)}</div></div>
       </div>
-      <div class="gauge-scene gauge-scene-ocean">
-        <div class="gauge-bar gauge-bar-expense" style="height:${expPos}%"></div>
-        <div class="gauge-avg-line" style="bottom:${avgExpPos}%"><span class="gauge-avg-label">平均</span></div>
-        <div class="gauge-person" style="bottom:${Math.max(90 - expPos, 5)}%;left:50%;transform:translateX(-50%)">${expPct >= 100 ? '🏊' : '🤿'}</div>
+      <div style="background:linear-gradient(180deg,#e3f2fd 0%,#64b5f6 30%,#1976d2 65%,#0d47a1 100%);border-radius:10px;padding:16px;position:relative;min-height:140px">
+        <div style="text-align:center;font-size:48px;line-height:1;margin-bottom:8px">${oceanEmoji[expLevel]}</div>
+        <div style="text-align:center;font-size:14px;font-weight:600;color:white;text-shadow:0 1px 3px rgba(0,0,0,.3);margin-bottom:4px">${oceanSteps[expLevel]}</div>
+        <div style="display:flex;justify-content:center;gap:3px;margin:10px 0">
+          ${Array.from({length:10}, (_, i) => `<div style="width:20px;height:8px;border-radius:4px;background:${i < expLevel ? 'rgba(255,100,100,.9)' : 'rgba(255,255,255,.25)'}"></div>`).join('')}
+        </div>
+        <div style="text-align:center;font-size:20px;font-weight:700;color:white;text-shadow:0 1px 3px rgba(0,0,0,.3)">${expPct}%</div>
+        <div style="text-align:center;font-size:11px;color:rgba(255,255,255,.8);font-family:var(--font-m)">警戒線：月平均 ${fmtNT(avgExpense)}</div>
       </div>
-      <div class="gauge-pct" style="color:${expPct >= 100 ? 'var(--red)' : 'var(--green)'}">${expMsg}</div>
+      <div class="gauge-pct" style="color:${expPct >= 100 ? 'var(--red)' : 'var(--green)'}">
+        ${expPct >= 100 ? `超過平均 ${expPct}%！小心溺水！` : expPct > 0 ? `還在安全水域，已用 ${expPct}%` : `還在沙灘上，本月零支出！`}
+      </div>
     </div>
   `;
 }
