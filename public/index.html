@@ -397,25 +397,17 @@ function renderOverview() {
   const now = new Date();
   const curMonthKey = String(now.getFullYear()) + String(now.getMonth() + 1).padStart(2, '0');
   const curMonth = m.find(r => r.name === curMonthKey) || m[m.length - 1] || {};
-  // 收入平均：排除最高月份（異常值）
-  const incByMonth = m.map(r => r.totalIncome).sort((a, b) => a - b);
-  const incTrimmed = incByMonth.length > 2 ? incByMonth.slice(0, -1) : incByMonth;
-  const avgIncome = incTrimmed.length ? incTrimmed.reduce((s, v) => s + v, 0) / incTrimmed.length : 0;
-  // 支出排除「投資」+ 排除最高月份（異常值）
-  const expNoInvest = DATA.expenses.filter(e => e.tag !== '投資');
-  const expByMonth = {};
-  expNoInvest.forEach(e => {
-    if (!e.date) return;
-    const mk = e.date.slice(0,4) + e.date.slice(5,7);
-    expByMonth[mk] = (expByMonth[mk] || 0) + e.amount;
-  });
-  const expMonthVals = Object.values(expByMonth).sort((a, b) => a - b);
-  const expTrimmed = expMonthVals.length > 2 ? expMonthVals.slice(0, -1) : expMonthVals;
-  const avgExpense = expTrimmed.length ? expTrimmed.reduce((s, v) => s + v, 0) / expTrimmed.length : 0;
+  // 用中位數算平均（自動排除異常月份）
+  function median(arr) {
+    const s = arr.filter(v => v > 0).sort((a, b) => a - b);
+    if (!s.length) return 0;
+    const mid = Math.floor(s.length / 2);
+    return s.length % 2 ? s[mid] : (s[mid - 1] + s[mid]) / 2;
+  }
+  const avgIncome = median(m.map(r => r.totalIncome));
+  const avgExpense = median(m.map(r => r.totalExpenses));
   const curIncome = curMonth.totalIncome || 0;
-  // 本月支出也排除投資
-  const curMonthExpenses = expNoInvest.filter(e => e.date && e.date.startsWith(curMonthKey.slice(0,4) + '-' + curMonthKey.slice(4)));
-  const curExpense = curMonthExpenses.reduce((s, e) => s + e.amount, 0);
+  const curExpense = curMonth.totalExpenses || 0;
   const incPct = avgIncome > 0 ? Math.round((curIncome / avgIncome) * 100) : 0;
   const expPct = avgExpense > 0 ? Math.round((curExpense / avgExpense) * 100) : 0;
 
