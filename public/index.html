@@ -101,6 +101,26 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-b);font-size:
 .sim-inputs input:focus{border-color:var(--accent)}
 
 .fn{font-size:11px;color:var(--text3);text-align:center;margin-top:20px;font-family:var(--font-m);line-height:1.9}
+
+/* Gauge cards */
+.gauge-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;position:relative;overflow:hidden}
+.gauge-header{display:flex;align-items:center;gap:8px;margin-bottom:16px}
+.gauge-header .icon{font-size:28px}
+.gauge-header .title{font-family:var(--font-m);font-size:12px;color:var(--text3);letter-spacing:.08em}
+.gauge-stats{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+.gauge-stat-label{font-size:10px;color:var(--text3);font-family:var(--font-m);margin-bottom:2px}
+.gauge-stat-val{font-size:18px;font-weight:600;font-family:var(--font-m)}
+.gauge-scene{position:relative;height:120px;border-radius:10px;overflow:hidden}
+.gauge-scene-mountain{background:linear-gradient(180deg,#e8f4ea 0%,#c8e6c9 40%,#81c784 70%,#4caf50 100%)}
+.gauge-scene-ocean{background:linear-gradient(180deg,#e3f2fd 0%,#90caf9 30%,#42a5f5 60%,#1565c0 100%)}
+.gauge-level{position:absolute;bottom:0;left:0;right:0;display:flex;align-items:flex-end;justify-content:center;transition:height .5s ease}
+.gauge-person{font-size:36px;position:absolute;z-index:2;transition:bottom .5s ease}
+.gauge-bar{position:absolute;bottom:0;left:0;right:0;opacity:.25;border-radius:8px 8px 0 0}
+.gauge-bar-income{background:var(--green)}
+.gauge-bar-expense{background:var(--red)}
+.gauge-avg-line{position:absolute;left:0;right:0;height:2px;border-top:2px dashed rgba(0,0,0,.25);z-index:3}
+.gauge-avg-label{position:absolute;right:6px;font-size:9px;font-family:var(--font-m);color:rgba(0,0,0,.4);transform:translateY(-12px)}
+.gauge-pct{text-align:center;margin-top:8px;font-family:var(--font-m);font-size:12px}
 </style>
 </head>
 <body>
@@ -156,17 +176,8 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-b);font-size:
     <canvas id="cumChart"></canvas>
   </div>
 
-  <!-- Recent transactions -->
-  <div class="g2">
-    <div class="card">
-      <div class="sec">近期收入 Top 10</div>
-      <table class="tbl" id="recentIncome"></table>
-    </div>
-    <div class="card">
-      <div class="sec">近期支出 Top 10</div>
-      <table class="tbl" id="recentExpenses"></table>
-    </div>
-  </div>
+  <!-- Monthly gauge -->
+  <div class="g2" id="monthlyGauge"></div>
 </div>
 
 <!-- ===================== 收入 ===================== -->
@@ -382,16 +393,55 @@ function renderOverview() {
     options: chartOpts('NT$')
   });
 
-  // Recent transactions
-  const sortedInc = [...DATA.income].sort((a, b) => (b.date || '').localeCompare(a.date || '')).slice(0, 10);
-  document.getElementById('recentIncome').innerHTML = `
-    <thead><tr><th>來源</th><th>分類</th><th class="right">金額</th></tr></thead>
-    <tbody>${sortedInc.map(r => `<tr><td>${r.source}</td><td><span class="tag tag-income">${r.tag || '-'}</span></td><td class="right" style="color:var(--green)">${fmtNT(r.amount)}</td></tr>`).join('')}</tbody>
-  `;
-  const sortedExp = [...DATA.expenses].sort((a, b) => (b.date || '').localeCompare(a.date || '')).slice(0, 10);
-  document.getElementById('recentExpenses').innerHTML = `
-    <thead><tr><th>項目</th><th>分類</th><th class="right">金額</th></tr></thead>
-    <tbody>${sortedExp.map(r => `<tr><td>${r.source}</td><td><span class="tag tag-expense">${r.tag || '-'}</span></td><td class="right" style="color:var(--red)">${fmtNT(r.amount)}</td></tr>`).join('')}</tbody>
+  // Monthly gauge - income as mountain climbing, expenses as ocean diving
+  const avgIncome = DATA.monthly.length ? totalIncome / DATA.monthly.length : 0;
+  const avgExpense = DATA.monthly.length ? totalExpenses / DATA.monthly.length : 0;
+  // Current month: find latest month
+  const latestMonth = m[m.length - 1] || {};
+  const curIncome = latestMonth.totalIncome || 0;
+  const curExpense = latestMonth.totalExpenses || 0;
+  const incPct = avgIncome > 0 ? Math.min((curIncome / avgIncome) * 100, 200) : 0;
+  const expPct = avgExpense > 0 ? Math.min((curExpense / avgExpense) * 100, 200) : 0;
+  // Person position (0-100% of scene height)
+  const incPos = Math.min(Math.max(incPct / 2, 5), 90);
+  const expPos = Math.min(Math.max(expPct / 2, 5), 90);
+  const avgIncPos = 50; // average line at 50%
+  const avgExpPos = 50;
+
+  const incMsg = incPct >= 100
+    ? `已達平均 ${Math.round(incPct)}%！繼續攻頂！`
+    : `距離平均還差 ${fmtNT(avgIncome - curIncome)}`;
+  const expMsg = expPct >= 100
+    ? `已超過平均 ${Math.round(expPct)}%！注意溺水！`
+    : `低於平均，浮在水面上！`;
+
+  document.getElementById('monthlyGauge').innerHTML = `
+    <div class="gauge-card">
+      <div class="gauge-header"><span class="icon">🏔️</span><div><div class="title">本月收入 — 爬山攻頂</div></div></div>
+      <div class="gauge-stats">
+        <div><div class="gauge-stat-label">本月（${latestMonth.name || '-'}）</div><div class="gauge-stat-val" style="color:var(--green)">${fmtNT(curIncome)}</div></div>
+        <div><div class="gauge-stat-label">月平均</div><div class="gauge-stat-val">${fmtNT(avgIncome)}</div></div>
+      </div>
+      <div class="gauge-scene gauge-scene-mountain">
+        <div class="gauge-bar gauge-bar-income" style="height:${incPos}%"></div>
+        <div class="gauge-avg-line" style="bottom:${avgIncPos}%"><span class="gauge-avg-label">平均</span></div>
+        <div class="gauge-person" style="bottom:${incPos - 5}%;left:50%;transform:translateX(-50%)">${incPct >= 100 ? '🧗' : '🥾'}</div>
+      </div>
+      <div class="gauge-pct" style="color:${incPct >= 100 ? 'var(--green)' : 'var(--accent3)'}">${incMsg}</div>
+    </div>
+    <div class="gauge-card">
+      <div class="gauge-header"><span class="icon">🌊</span><div><div class="title">本月支出 — 浮潛水位</div></div></div>
+      <div class="gauge-stats">
+        <div><div class="gauge-stat-label">本月（${latestMonth.name || '-'}）</div><div class="gauge-stat-val" style="color:var(--red)">${fmtNT(curExpense)}</div></div>
+        <div><div class="gauge-stat-label">月平均</div><div class="gauge-stat-val">${fmtNT(avgExpense)}</div></div>
+      </div>
+      <div class="gauge-scene gauge-scene-ocean">
+        <div class="gauge-bar gauge-bar-expense" style="height:${expPos}%"></div>
+        <div class="gauge-avg-line" style="bottom:${avgExpPos}%"><span class="gauge-avg-label">平均</span></div>
+        <div class="gauge-person" style="bottom:${Math.max(90 - expPos, 5)}%;left:50%;transform:translateX(-50%)">${expPct >= 100 ? '🏊' : '🤿'}</div>
+      </div>
+      <div class="gauge-pct" style="color:${expPct >= 100 ? 'var(--red)' : 'var(--green)'}">${expMsg}</div>
+    </div>
   `;
 }
 
