@@ -82,7 +82,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-b);font-size:
 
 /* Hero */
 .hero{background:linear-gradient(135deg,rgba(232,132,90,.07),rgba(91,155,213,.05));border:1px solid rgba(232,132,90,.25);border-radius:16px;padding:24px 28px;margin-bottom:16px}
-.hero-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;text-align:center}
+.hero-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;text-align:center}
 @media(max-width:600px){.hero-grid{grid-template-columns:1fr}}
 .hero-val{font-family:var(--font-d);font-size:28px;font-weight:700;line-height:1.1}
 .hero-label{font-size:11px;color:var(--text2);margin-bottom:4px;font-family:var(--font-m)}
@@ -341,9 +341,8 @@ function renderOverview() {
   const stockTotal = DATA.stocks.reduce((s, st) => s + st.marketValue, 0);
 
   document.getElementById('heroStats').innerHTML = `
-    <div><div class="hero-label">累積基金餘額</div><div class="hero-val" style="color:var(--accent)">${fmtNT(totalNet)}</div><div class="hero-sub">全期間淨額</div></div>
-    <div><div class="hero-label">總收入</div><div class="hero-val" style="color:var(--green)">${fmtNT(totalIncome)}</div><div class="hero-sub">${m.length} 個月</div></div>
-    <div><div class="hero-label">股票市值</div><div class="hero-val" style="color:var(--accent2)">${fmtNT(stockTotal)}</div><div class="hero-sub">${DATA.stocks.length} 支股票</div></div>
+    <div><div class="hero-label">收入 - 支出</div><div class="hero-val" style="color:${totalNet >= 0 ? 'var(--green)' : 'var(--red)'}">${fmtNT(totalNet)}</div><div class="hero-sub">${m.length} 個月累計</div></div>
+    <div><div class="hero-label">股票市值</div><div class="hero-val" style="color:var(--accent2)">${fmtNT(stockTotal)}</div><div class="hero-sub">${DATA.stocks.filter(s=>s.name).length} 支股票</div></div>
   `;
 
   // Monthly trend chart
