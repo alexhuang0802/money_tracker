@@ -76,13 +76,17 @@ export default async function handler(req, res) {
   if (!token) return res.status(500).json({ error: '未設定 NOTION_TOKEN' });
 
   try {
-    // 並行查詢所有資料庫
+    // 並行查詢所有資料庫（個別容錯）
+    async function safeQuery(id) {
+      try { return await queryDB(token, id); }
+      catch (e) { console.error(`DB ${id} failed:`, e.message); return []; }
+    }
     const [monthlyRaw, incomeRaw, expensesRaw, stocksRaw, purchasesRaw] = await Promise.all([
-      queryDB(token, DB_IDS.monthly),
-      queryDB(token, DB_IDS.income),
-      queryDB(token, DB_IDS.expenses),
-      queryDB(token, DB_IDS.stocks),
-      queryDB(token, DB_IDS.purchases),
+      safeQuery(DB_IDS.monthly),
+      safeQuery(DB_IDS.income),
+      safeQuery(DB_IDS.expenses),
+      safeQuery(DB_IDS.stocks),
+      safeQuery(DB_IDS.purchases),
     ]);
 
     // 整理每月總覽
