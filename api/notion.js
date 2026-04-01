@@ -3,7 +3,7 @@
 
 const DB_IDS = {
   monthly:  '1e68718e66c1812bba5afa237e96a35c', // ❤️❤️基金（月總覽）
-  income:   '1e68718e66c1815cb36bf8f9a933d8b7', // Income
+  income:   '1e98718e66c180b2a312cb0604f73a40', // Income (single view)
   expenses: '1e68718e66c181738363f2ca6f70d685', // Expenses
   stocks:   '32b8718e66c180938d50f77a579056a6', // 股票資產
   purchases:'6fd959736dc0430fb49ef200e37531b6', // 買進記錄
@@ -19,7 +19,7 @@ async function queryDB(token, dbId) {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
-        'Notion-Version': '2025-09-03',
+        'Notion-Version': '2022-06-28',
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(body),
