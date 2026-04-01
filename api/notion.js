@@ -1,91 +1,149 @@
 // api/notion.js - Vercel Serverless Function
-// 代理 Notion API 請求，解決瀏覽器 CORS 問題
-// 環境變數：NOTION_TOKEN（在 Vercel 後台設定）
+// 從 Notion 讀取所有財務資料：每月總覽、收入、支出、股票資產
 
-const NOTION_DB_ID = '32b8718e-66c1-8038-8ebb-000beee610f8';
-
-// 股票 page ID 對應表（從你的 Notion 資料庫）
-const STOCK_PAGES = {
-  '0050': '32b8718e-66c1-805d-ac4f-dd38686c76d2',
-  '0056': '32b8718e-66c1-8018-b218-ea094ef50682',
-  'STRC': '32b8718e-66c1-8026-b6c6-d97e953c4c22',
-  '川湖':  '32b8718e-66c1-805c-b6da-e1be6080f703',
+const DB_IDS = {
+  monthly:  '1e68718e-66c1-81e9-adac-000bb1aae5fc', // ❤️❤️基金（月總覽）
+  income:   '1e68718e-66c1-817e-bf85-000b90872144', // Income
+  expenses: '1e68718e-66c1-81b7-81d0-000b62860e67', // Expenses
+  stocks:   '32b8718e-66c1-8038-8ebb-000beee610f8', // 股票資產
+  purchases:'a74ea835-4ca5-4c42-92b0-4f41bed069b3', // 買進記錄
 };
 
+async function queryDB(token, dbId) {
+  const all = [];
+  let cursor = undefined;
+  do {
+    const body = { page_size: 100 };
+    if (cursor) body.start_cursor = cursor;
+    const res = await fetch(`https://api.notion.com/v1/databases/${dbId}/query`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Notion-Version': '2022-06-28',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) {
+      const err = await res.text();
+      throw new Error(`Notion API ${res.status}: ${err}`);
+    }
+    const data = await res.json();
+    all.push(...data.results);
+    cursor = data.has_more ? data.next_cursor : undefined;
+  } while (cursor);
+  return all;
+}
+
+function getText(prop) {
+  if (!prop) return '';
+  if (prop.title) return prop.title.map(t => t.plain_text).join('');
+  if (prop.rich_text) return prop.rich_text.map(t => t.plain_text).join('');
+  return '';
+}
+
+function getNum(prop) {
+  if (!prop) return 0;
+  if (prop.type === 'number') return prop.number ?? 0;
+  if (prop.type === 'rollup') return prop.rollup?.number ?? 0;
+  if (prop.type === 'formula') {
+    if (prop.formula?.type === 'number') return prop.formula.number ?? 0;
+    if (prop.formula?.type === 'string') {
+      const n = parseFloat((prop.formula.string || '').replace(/[^0-9.\-]/g, ''));
+      return isNaN(n) ? 0 : n;
+    }
+  }
+  return 0;
+}
+
+function getSelect(prop) {
+  if (!prop || prop.type !== 'select') return '';
+  return prop.select?.name ?? '';
+}
+
+function getDate(prop) {
+  if (!prop || prop.type !== 'date' || !prop.date) return '';
+  return prop.date.start ?? '';
+}
+
 export default async function handler(req, res) {
-  // 允許跨域
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   const token = process.env.NOTION_TOKEN;
-  if (!token) {
-    return res.status(500).json({ error: '未設定 NOTION_TOKEN 環境變數' });
-  }
+  if (!token) return res.status(500).json({ error: '未設定 NOTION_TOKEN' });
 
   try {
-    // 查詢資料庫，取得所有股票的最新資料
-    const dbRes = await fetch(
-      `https://api.notion.com/v1/databases/${NOTION_DB_ID}/query`,
-      {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Notion-Version': '2022-06-28',
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ page_size: 20 }),
-      }
-    );
+    // 並行查詢所有資料庫
+    const [monthlyRaw, incomeRaw, expensesRaw, stocksRaw, purchasesRaw] = await Promise.all([
+      queryDB(token, DB_IDS.monthly),
+      queryDB(token, DB_IDS.income),
+      queryDB(token, DB_IDS.expenses),
+      queryDB(token, DB_IDS.stocks),
+      queryDB(token, DB_IDS.purchases),
+    ]);
 
-    if (!dbRes.ok) {
-      const err = await dbRes.text();
-      return res.status(dbRes.status).json({ error: 'Notion API 錯誤', detail: err });
-    }
+    // 整理每月總覽
+    const monthly = monthlyRaw.map(p => ({
+      name: getText(p.properties['Name']),
+      totalIncome: getNum(p.properties['Total Mothly Income']),
+      totalExpenses: getNum(p.properties['Total Monthly Expenses']),
+      monthlyNet: getNum(p.properties['Monthly Net']),
+      goal: getNum(p.properties['Goal']),
+    })).sort((a, b) => a.name.localeCompare(b.name));
 
-    const data = await dbRes.json();
+    // 整理收入
+    const income = incomeRaw.map(p => ({
+      source: getText(p.properties['Source']),
+      amount: getNum(p.properties['Amount']),
+      tag: getSelect(p.properties['Tags']),
+      date: getDate(p.properties['Date']) || getDate(p.properties['Date ']) || getDate(p.properties['Date 1']),
+    }));
 
-    // 整理每支股票的資料
-    const stocks = data.results.map(page => {
-      const props = page.properties;
+    // 整理支出
+    const expenses = expensesRaw.map(p => ({
+      source: getText(p.properties['Source']),
+      amount: getNum(p.properties['Amount']),
+      tag: getSelect(p.properties['Tags']),
+      date: getDate(p.properties['Date']) || getDate(p.properties['Date ']) || getDate(p.properties['日期']),
+    }));
 
-      // 取得持股數量（從 rollup）
-      let held = 0;
-      if (props['持有股數']?.rollup?.number != null) {
-        held = props['持有股數'].rollup.number;
-      }
-
-      // 取得股價
-      const price = props['股價']?.number ?? 0;
-
-      // 取得市場
-      const market = props['市場']?.rich_text?.[0]?.plain_text ?? '台股';
-
-      // 取得股票名稱
-      const name = props['股票名稱']?.title?.[0]?.plain_text ?? '';
-
-      // 取得匯率
-      const exchangeRate = props['匯率']?.number ?? 1;
-
-      // 取得總成本（rollup）
-      const totalCost = props['💸 總成本']?.rollup?.number ?? 0;
+    // 整理股票資產
+    const stocks = stocksRaw.map(p => {
+      const market = getText(p.properties['市場']) || '台股';
+      const exchangeRate = getNum(p.properties['匯率']) || 1;
+      const price = getNum(p.properties['股價']);
+      const held = getNum(p.properties['持有股數']);
+      const totalCost = getNum(p.properties['💸 總成本']);
+      const marketValue = getNum(p.properties['市值']);
+      const profitPct = getNum(p.properties['📈 損益%']);
+      const profitAmt = getNum(p.properties['📊 損益金額']);
+      const avgCost = getNum(p.properties['📐 平均成本']);
+      const divAmount = getNum(p.properties['💵 除息金額']);
+      const lastDivDate = getDate(p.properties['📅 最後除息日']);
 
       return {
-        pageId: page.id,
-        name,
-        price,
-        held,
-        market,
-        exchangeRate,
-        totalCost,
-        initVal: price * held * exchangeRate,
-        lastUpdated: page.last_edited_time,
+        name: getText(p.properties['股票名稱']),
+        price, held, market, exchangeRate, totalCost,
+        marketValue, profitPct, profitAmt, avgCost,
+        divAmount, lastDivDate,
       };
     });
 
+    // 整理買進記錄
+    const purchases = purchasesRaw.map(p => ({
+      record: getText(p.properties['買進記錄']),
+      shares: getNum(p.properties['買進股數']),
+      price: getNum(p.properties['買進價格']),
+      date: getDate(p.properties['買進日期']),
+      exchangeRate: getNum(p.properties['匯率']),
+      costTWD: getNum(p.properties['台幣成本']),
+    })).sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+
     return res.status(200).json({
-      stocks,
+      monthly, income, expenses, stocks, purchases,
       fetchedAt: new Date().toISOString(),
     });
 
