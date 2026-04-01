@@ -2,11 +2,11 @@
 // 從 Notion 讀取所有財務資料：每月總覽、收入、支出、股票資產
 
 const DB_IDS = {
-  monthly:  '1e68718e-66c1-81e9-adac-000bb1aae5fc', // ❤️❤️基金（月總覽）
-  income:   '1e68718e-66c1-817e-bf85-000b90872144', // Income
-  expenses: '1e68718e-66c1-81b7-81d0-000b62860e67', // Expenses
-  stocks:   '32b8718e-66c1-8038-8ebb-000beee610f8', // 股票資產
-  purchases:'a74ea835-4ca5-4c42-92b0-4f41bed069b3', // 買進記錄
+  monthly:  '1e68718e66c1812bba5afa237e96a35c', // ❤️❤️基金（月總覽）
+  income:   '1e68718e66c1815cb36bf8f9a933d8b7', // Income
+  expenses: '1e68718e66c181738363f2ca6f70d685', // Expenses
+  stocks:   '32b8718e66c180938d50f77a579056a6', // 股票資產
+  purchases:'6fd959736dc0430fb49ef200e37531b6', // 買進記錄
 };
 
 async function queryDB(token, dbId) {
