@@ -400,8 +400,8 @@ function renderOverview() {
   // 排除最高月份後算平均（去掉異常值）
   function trimmedAvg(arr) {
     const s = arr.filter(v => v > 0).sort((a, b) => a - b);
-    if (s.length <= 1) return s[0] || 0;
-    const trimmed = s.slice(0, -1); // 排除最高
+    if (s.length <= 2) return s[0] || 0;
+    const trimmed = s.slice(0, -2); // 排除最高2個月
     return Math.round(trimmed.reduce((a, b) => a + b, 0) / trimmed.length);
   }
   const avgIncome = trimmedAvg(m.map(r => r.totalIncome));
@@ -523,7 +523,14 @@ function renderExpenses() {
   const total = items.reduce((s, r) => s + r.amount, 0);
   const byTag = groupByTag(items);
   const topTag = Object.entries(byTag).sort((a, b) => b[1] - a[1])[0];
-  const avg = DATA.monthly.length ? total / DATA.monthly.length : 0;
+  // 月平均：排除投資、排除 0 月、排除最高月
+  const expNoInvest = items.filter(e => e.tag !== '投資');
+  const expByMonth = {};
+  expNoInvest.forEach(e => {
+    if (!e.monthId) return;
+    expByMonth[e.monthId] = (expByMonth[e.monthId] || 0) + e.amount;
+  });
+  const avg = trimmedAvg(Object.values(expByMonth));
 
   document.getElementById('expenseStats').innerHTML = `
     <div class="stat"><div class="stat-label">總支出</div><div class="stat-val" style="color:var(--red)">${fmtNT(total)}</div></div>
