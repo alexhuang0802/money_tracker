@@ -295,6 +295,12 @@ function fmtNum(n) {
   if (n == null || isNaN(n)) return '0';
   return Math.round(n).toLocaleString('zh-TW');
 }
+function trimmedAvg(arr) {
+  const s = arr.filter(v => v > 0).sort((a, b) => a - b);
+  if (s.length <= 2) return s[0] || 0;
+  const trimmed = s.slice(0, -2); // 排除最高2個月
+  return Math.round(trimmed.reduce((a, b) => a + b, 0) / trimmed.length);
+}
 function fmtPct(n) {
   if (n == null || isNaN(n)) return '0%';
   return (n > 0 ? '+' : '') + n.toFixed(1) + '%';
@@ -397,13 +403,6 @@ function renderOverview() {
   const now = new Date();
   const curMonthKey = String(now.getFullYear()) + String(now.getMonth() + 1).padStart(2, '0');
   const curMonth = m.find(r => r.name === curMonthKey) || m[m.length - 1] || {};
-  // 排除最高月份後算平均（去掉異常值）
-  function trimmedAvg(arr) {
-    const s = arr.filter(v => v > 0).sort((a, b) => a - b);
-    if (s.length <= 2) return s[0] || 0;
-    const trimmed = s.slice(0, -2); // 排除最高2個月
-    return Math.round(trimmed.reduce((a, b) => a + b, 0) / trimmed.length);
-  }
   const avgIncome = trimmedAvg(m.map(r => r.totalIncome));
   // 支出：按 Notion 月份分組，排除投資類，再排除最高月
   const expNoInvest = DATA.expenses.filter(e => e.tag !== '投資');
