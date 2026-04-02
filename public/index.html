@@ -403,15 +403,20 @@ function renderOverview() {
   const now = new Date();
   const curMonthKey = String(now.getFullYear()) + String(now.getMonth() + 1).padStart(2, '0');
   const curMonth = m.find(r => r.name === curMonthKey) || m[m.length - 1] || {};
-  // 只算已結束的月份（排除當月及未來）
-  const pastMonths = m.filter(r => r.name < curMonthKey);
-  const avgIncome = trimmedAvg(pastMonths.map(r => r.totalIncome));
-  // 支出：按 Notion 月份分組，排除投資類，只算已結束月份
-  const pastMonthIds = new Set(pastMonths.map(r => r.id));
+  // 收入平均：扣除開帳金額，排除前2高月、排除0月
+  const openingByMonth = {};
+  DATA.income.filter(e => e.source === '開帳').forEach(e => {
+    if (!e.date) return;
+    const mk = e.date.slice(0, 4) + e.date.slice(5, 7);
+    openingByMonth[mk] = (openingByMonth[mk] || 0) + e.amount;
+  });
+  const adjIncomes = m.map(r => r.totalIncome - (openingByMonth[r.name] || 0));
+  const avgIncome = trimmedAvg(adjIncomes);
+  // 支出平均：排除投資類，排除前2高月、排除0月
   const expNoInvest = DATA.expenses.filter(e => e.tag !== '投資');
   const expByMonthId = {};
   expNoInvest.forEach(e => {
-    if (!e.monthId || !pastMonthIds.has(e.monthId)) return;
+    if (!e.monthId) return;
     expByMonthId[e.monthId] = (expByMonthId[e.monthId] || 0) + e.amount;
   });
   const avgExpense = trimmedAvg(Object.values(expByMonthId));
@@ -479,11 +484,14 @@ function renderIncome() {
   const total = items.reduce((s, r) => s + r.amount, 0);
   const byTag = groupByTag(items);
   const topTag = Object.entries(byTag).sort((a, b) => b[1] - a[1])[0];
-  // 月平均：只算已結束月份、排除前2高月、排除0月
-  const nowI = new Date();
-  const curKeyI = String(nowI.getFullYear()) + String(nowI.getMonth() + 1).padStart(2, '0');
-  const pastMI = DATA.monthly.filter(r => r.name < curKeyI);
-  const avg = trimmedAvg(pastMI.map(r => r.totalIncome));
+  // 月平均：扣除開帳、排除前2高月、排除0月
+  const openByM = {};
+  DATA.income.filter(e => e.source === '開帳').forEach(e => {
+    if (!e.date) return;
+    const mk = e.date.slice(0, 4) + e.date.slice(5, 7);
+    openByM[mk] = (openByM[mk] || 0) + e.amount;
+  });
+  const avg = trimmedAvg(DATA.monthly.map(r => r.totalIncome - (openByM[r.name] || 0)));
 
   document.getElementById('incomeStats').innerHTML = `
     <div class="stat"><div class="stat-label">總收入</div><div class="stat-val" style="color:var(--green)">${fmtNT(total)}</div></div>
@@ -529,15 +537,11 @@ function renderExpenses() {
   const total = items.reduce((s, r) => s + r.amount, 0);
   const byTag = groupByTag(items);
   const topTag = Object.entries(byTag).sort((a, b) => b[1] - a[1])[0];
-  // 月平均：排除投資、只算已結束月份、排除前2高月、排除0月
-  const now2 = new Date();
-  const curKey = String(now2.getFullYear()) + String(now2.getMonth() + 1).padStart(2, '0');
-  const pastM = DATA.monthly.filter(r => r.name < curKey);
-  const pastIds = new Set(pastM.map(r => r.id));
+  // 月平均：排除投資、排除前2高月、排除0月
   const expNoInvest = items.filter(e => e.tag !== '投資');
   const expByMonth = {};
   expNoInvest.forEach(e => {
-    if (!e.monthId || !pastIds.has(e.monthId)) return;
+    if (!e.monthId) return;
     expByMonth[e.monthId] = (expByMonth[e.monthId] || 0) + e.amount;
   });
   const avg = trimmedAvg(Object.values(expByMonth));
