@@ -130,7 +130,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-b);font-size:
 <!-- Header -->
 <header style="margin-bottom:20px">
   <div style="display:flex;align-items:center;gap:16px;margin-bottom:12px">
-    <svg width="56" height="56" viewBox="0 0 64 64" fill="none"><ellipse cx="32" cy="36" rx="20" ry="14" fill="#ffb3ba"/><circle cx="32" cy="22" r="14" fill="#ffb3ba"/><ellipse cx="20" cy="12" rx="6" ry="7" fill="#ffb3ba"/><ellipse cx="44" cy="12" rx="6" ry="7" fill="#ffb3ba"/><ellipse cx="20" cy="12" rx="3.5" ry="4.5" fill="#ff8fa3"/><ellipse cx="44" cy="12" rx="3.5" ry="4.5" fill="#ff8fa3"/><ellipse cx="32" cy="25" rx="7" ry="5" fill="#ff8fa3"/><circle cx="29.5" cy="25" r="1.5" fill="#d45f7a"/><circle cx="34.5" cy="25" r="1.5" fill="#d45f7a"/><circle cx="26" cy="19" r="2.5" fill="#3d2b1f"/><circle cx="38" cy="19" r="2.5" fill="#3d2b1f"/><circle cx="26.8" cy="18.2" r="1" fill="white"/><circle cx="38.8" cy="18.2" r="1" fill="white"/><path d="M52 36 Q58 30 55 38 Q52 45 56 42" stroke="#ff8fa3" stroke-width="2.5" fill="none" stroke-linecap="round"/><circle cx="50" cy="12" r="8" fill="#f5c842" opacity="0.9"/><text x="50" y="16" text-anchor="middle" font-size="9" fill="#c87c1a" font-weight="bold">$</text></svg>
+    <img src="/pig-logo.png" alt="Logo" style="width:64px;height:64px;border-radius:12px;object-fit:cover">
     <div>
       <div class="htag">FINANCE DASHBOARD // ALEX & TIFFANY</div>
       <h1 style="font-family:var(--font-d);font-size:26px;font-weight:700">財務總覽 Dashboard</h1>
@@ -358,7 +358,7 @@ function renderOverview() {
   const stockTotal = DATA.stocks.reduce((s, st) => s + st.marketValue, 0);
 
   document.getElementById('heroStats').innerHTML = `
-    <div><div class="hero-label">收入 - 支出</div><div class="hero-val" style="color:${totalNet >= 0 ? 'var(--green)' : 'var(--red)'}">${fmtNT(totalNet)}</div></div>
+    <div><div class="hero-label">基金總額</div><div class="hero-val" style="color:${totalNet >= 0 ? 'var(--green)' : 'var(--red)'}">${fmtNT(totalNet)}</div></div>
     <div><div class="hero-label">股票市值</div><div class="hero-val" style="color:var(--accent2)">${fmtNT(stockTotal)}</div></div>
   `;
 
