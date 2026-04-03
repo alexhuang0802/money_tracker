@@ -780,22 +780,8 @@ function renderStocks() {
     }).join('')}
   `;
 
-  // 股利總覽
-  const divsStocks = stocks.filter(s => s.divAmount > 0);
-  document.getElementById('stockDividendSummary').innerHTML = `
-    <div class="sec">股利收入總覽</div>
-    <div style="display:flex;align-items:baseline;gap:12px;margin-bottom:12px">
-      <span style="font-family:var(--font-d);font-size:22px;font-weight:700;color:var(--accent3)">${fmtNT(totalDiv)}</span>
-      <span style="font-family:var(--font-m);font-size:11px;color:var(--text3)">累計除息金額</span>
-    </div>
-    ${divsStocks.map((s, i) => {
-      const pct = totalDiv > 0 ? ((s.divAmount / totalDiv) * 100).toFixed(0) : 0;
-      return `<div style="display:flex;justify-content:space-between;font-family:var(--font-m);font-size:12px;padding:6px 0;border-bottom:1px solid var(--border)">
-        <span style="color:${COLORS_HEX[stocks.indexOf(s) % 6]};font-weight:600">${s.name}</span>
-        <span style="color:var(--text2)">NT$${fmtNum(s.divAmount)} (${pct}%) · ${s.lastDivDate || '-'}</span>
-      </div>`;
-    }).join('')}
-  `;
+  // 股利總覽已移除
+  document.getElementById('stockDividendSummary').style.display = 'none';
 
   // Purchase table
   document.getElementById('purchaseTable').innerHTML = `
