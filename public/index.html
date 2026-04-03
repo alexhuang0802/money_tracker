@@ -607,7 +607,7 @@ function renderExpenses() {
     <div class="stat"><div class="stat-label">筆數</div><div class="stat-val">${items.length}</div></div>
   `;
 
-  const tagEntries = Object.entries(byTag).sort((a, b) => b[1] - a[1]);
+  const tagEntries = Object.entries(byTag).filter(e => e[0] !== '投資').sort((a, b) => b[1] - a[1]);
   if (charts.expTag) charts.expTag.destroy();
   charts.expTag = new Chart(document.getElementById('expenseByTagChart'), {
     type: 'doughnut',
