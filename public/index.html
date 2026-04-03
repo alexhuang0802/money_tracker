@@ -210,12 +210,6 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-b);font-size:
     </div>
   </div>
   <div class="card" id="expenseCategoryProgress"></div>
-  <div class="card">
-    <div class="sec">所有支出記錄</div>
-    <div style="max-height:400px;overflow-y:auto">
-      <table class="tbl" id="expenseTable"></table>
-    </div>
-  </div>
 </div>
 
 <!-- ===================== 股票 ===================== -->
@@ -536,23 +530,28 @@ function renderIncome() {
   });
 
   // ── 本月分類達成率 ──
+  // 用 monthId 分組（跟支出一樣的邏輯）
+  const incNoOpen = items.filter(e => e.source !== '開帳');
+  // 按 monthId 算每月收入總額
+  const incByMonthId = {};
+  incNoOpen.forEach(e => {
+    if (!e.monthId) return;
+    incByMonthId[e.monthId] = (incByMonthId[e.monthId] || 0) + e.amount;
+  });
+  // 找當月 monthId
   const nowInc = new Date();
   const curMK = String(nowInc.getFullYear()) + String(nowInc.getMonth() + 1).padStart(2, '0');
-  // 本月各分類金額
-  const curMonthItems = items.filter(r => r.date && r.date.slice(0, 4) + r.date.slice(5, 7) === curMK);
+  const curMonthPage = DATA.monthly.find(r => r.name === curMK);
+  const curMonthId = curMonthPage ? curMonthPage.id : '';
+  // 本月各分類
   const curByTag = {};
-  curMonthItems.forEach(r => { const t = r.tag || '未分類'; curByTag[t] = (curByTag[t] || 0) + r.amount; });
-  // 找出前2高月，排除它們的分類金額
-  const incMonthAdj = DATA.monthly.map(r => ({ name: r.name, val: r.totalIncome - (openByM[r.name] || 0) })).filter(r => r.name !== curMK && r.val > 0);
-  incMonthAdj.sort((a, b) => b.val - a.val);
-  const top2IncMonths = new Set(incMonthAdj.slice(0, 2).map(r => r.name));
-  const incMonthCount = Math.max(incMonthAdj.length - 2, 1);
+  incNoOpen.filter(r => r.monthId === curMonthId).forEach(r => { const t = r.tag || '未分類'; curByTag[t] = (curByTag[t] || 0) + r.amount; });
+  // 找出前2高月 monthId（排除當月、排除0月）
+  const incMonthEntries = Object.entries(incByMonthId).filter(([id, v]) => id !== curMonthId && v > 0).sort((a, b) => b[1] - a[1]);
+  const top2IncMonthIds = new Set(incMonthEntries.slice(0, 2).map(e => e[0]));
+  const incMonthCount = Math.max(incMonthEntries.length - 2, 1);
   // 過往各分類（排除開帳、排除當月、排除前2高月）
-  const pastItems = items.filter(r => {
-    if (!r.date || r.source === '開帳') return false;
-    const mk = r.date.slice(0, 4) + r.date.slice(5, 7);
-    return mk !== curMK && !top2IncMonths.has(mk);
-  });
+  const pastItems = incNoOpen.filter(r => r.monthId && r.monthId !== curMonthId && !top2IncMonthIds.has(r.monthId));
   // 各分類加總
   const tagTotals = {};
   pastItems.forEach(r => { const t = r.tag || '未分類'; tagTotals[t] = (tagTotals[t] || 0) + r.amount; });
@@ -691,11 +690,6 @@ function renderExpenses() {
     ${expProgressHTML || '<div style="color:var(--text3);font-size:12px;font-family:var(--font-m)">本月尚無支出紀錄</div>'}
   `;
 
-  const sorted = [...items].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
-  document.getElementById('expenseTable').innerHTML = `
-    <thead><tr><th>日期</th><th>項目</th><th>分類</th><th class="right">金額</th></tr></thead>
-    <tbody>${sorted.map(r => `<tr><td>${r.date || '-'}</td><td>${r.source}</td><td><span class="tag tag-expense">${r.tag || '-'}</span></td><td class="right" style="color:var(--red)">${fmtNT(r.amount)}</td></tr>`).join('')}</tbody>
-  `;
 }
 
 // ── 股票 ──

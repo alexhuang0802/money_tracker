@@ -100,13 +100,21 @@ export default async function handler(req, res) {
       goal: getNum(p.properties['Goal']),
     })).sort((a, b) => a.name.localeCompare(b.name));
 
-    // 整理收入
-    const income = incomeRaw.map(p => ({
-      source: getText(p.properties['Source']),
-      amount: getNum(p.properties['Amount']),
-      tag: getSelect(p.properties['Tags']),
-      date: getDate(p.properties['Date']) || getDate(p.properties['Date ']) || getDate(p.properties['Date 1']),
-    }));
+    // 整理收入（含 Month 關聯）
+    const income = incomeRaw.map(p => {
+      const monthRel = p.properties['Month'];
+      let monthId = '';
+      if (monthRel?.type === 'relation' && monthRel.relation?.length) {
+        monthId = monthRel.relation[0].id;
+      }
+      return {
+        source: getText(p.properties['Source']),
+        amount: getNum(p.properties['Amount']),
+        tag: getSelect(p.properties['Tags']),
+        date: getDate(p.properties['Date']) || getDate(p.properties['Date ']) || getDate(p.properties['Date 1']),
+        monthId,
+      };
+    });
 
     // 整理支出（含 Month 關聯）
     const expenses = expensesRaw.map(p => {
