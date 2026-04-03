@@ -224,12 +224,6 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-b);font-size:
     <div class="card" id="stockProfitRank"></div>
   </div>
   <div class="card" id="stockDividendSummary"></div>
-  <div class="card">
-    <div class="sec">買進記錄</div>
-    <div style="max-height:400px;overflow-y:auto">
-      <table class="tbl" id="purchaseTable"></table>
-    </div>
-  </div>
 </div>
 
 <!-- ===================== 財富預測 ===================== -->
@@ -783,16 +777,6 @@ function renderStocks() {
   // 股利總覽已移除
   document.getElementById('stockDividendSummary').style.display = 'none';
 
-  // Purchase table
-  document.getElementById('purchaseTable').innerHTML = `
-    <thead><tr><th>日期</th><th>記錄</th><th class="right">股數</th><th class="right">價格</th><th class="right">台幣成本</th></tr></thead>
-    <tbody>${DATA.purchases.map(p => `<tr>
-      <td>${p.date || '-'}</td><td>${p.record}</td>
-      <td class="right">${fmtNum(p.shares)}</td>
-      <td class="right">${fmtNum(p.price)}</td>
-      <td class="right">${fmtNT(p.costTWD)}</td>
-    </tr>`).join('')}</tbody>
-  `;
 }
 
 // ── 財富預測 ──
