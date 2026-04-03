@@ -216,6 +216,14 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-b);font-size:
 <div id="sec-stocks" class="section">
   <div class="g4" id="stockStats"></div>
   <div class="stock-grid" id="stockCards"></div>
+  <div class="g2">
+    <div class="chart-wrap">
+      <div class="sec">持股佔比（市值）</div>
+      <canvas id="stockPieChart"></canvas>
+    </div>
+    <div class="card" id="stockProfitRank"></div>
+  </div>
+  <div class="card" id="stockDividendSummary"></div>
   <div class="card">
     <div class="sec">買進記錄</div>
     <div style="max-height:400px;overflow-y:auto">
@@ -694,11 +702,15 @@ function renderExpenses() {
 
 // ── 股票 ──
 function renderStocks() {
-  const stocks = DATA.stocks;
+  const COLORS_HEX = ['#e8845a','#5b9bd5','#e8a23a','#e06b7a','#7cb87c','#9b7ec8'];
+  const COLORS = ['c0','c1','c2','c3','c4','c5'];
+  // 過濾掉空白股票（市值=0 且 持股=0）
+  const stocks = DATA.stocks.filter(s => s.held > 0 || s.marketValue > 0);
   const totalMarket = stocks.reduce((s, st) => s + st.marketValue, 0);
   const totalCost = stocks.reduce((s, st) => s + st.totalCost, 0);
   const totalProfit = stocks.reduce((s, st) => s + st.profitAmt, 0);
   const overallPct = totalCost > 0 ? (totalProfit / totalCost * 100) : 0;
+  const totalDiv = stocks.reduce((s, st) => s + (st.divAmount || 0), 0);
 
   document.getElementById('stockStats').innerHTML = `
     <div class="stat"><div class="stat-label">總市值</div><div class="stat-val" style="color:var(--accent2)">${fmtNT(totalMarket)}</div></div>
@@ -707,7 +719,6 @@ function renderStocks() {
     <div class="stat"><div class="stat-label">報酬率</div><div class="stat-val ${overallPct >= 0 ? 'profit-pos' : 'profit-neg'}">${fmtPct(overallPct)}</div></div>
   `;
 
-  const COLORS = ['c0','c1','c2','c3','c4','c5'];
   document.getElementById('stockCards').innerHTML = stocks.map((s, i) => `
     <div class="sp ${COLORS[i % 6]}">
       <div class="sp-name">${s.name}</div>
@@ -723,6 +734,68 @@ function renderStocks() {
       ${s.lastDivDate ? `<div class="sp-row"><span class="k">最後除息日</span><span class="v">${s.lastDivDate}</span></div>` : ''}
     </div>
   `).join('');
+
+  // 持股佔比圓餅圖
+  if (charts.stockPie) charts.stockPie.destroy();
+  charts.stockPie = new Chart(document.getElementById('stockPieChart'), {
+    type: 'doughnut',
+    data: {
+      labels: stocks.map(s => s.name),
+      datasets: [{ data: stocks.map(s => s.marketValue), backgroundColor: COLORS_HEX }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { position: 'right', labels: { font: { family: 'DM Mono', size: 11 }, color: '#8a6655' } },
+        tooltip: {
+          callbacks: {
+            label: function(ctx) {
+              const pct = ((ctx.raw / totalMarket) * 100).toFixed(1);
+              return ` ${ctx.label}: ${fmtNT(ctx.raw)} (${pct}%)`;
+            }
+          }
+        }
+      }
+    }
+  });
+
+  // 損益排行
+  const sorted = [...stocks].sort((a, b) => b.profitPct - a.profitPct);
+  document.getElementById('stockProfitRank').innerHTML = `
+    <div class="sec">損益排行</div>
+    ${sorted.map((s, i) => {
+      const pct = s.profitPct || 0;
+      const barW = Math.min(Math.abs(pct), 50) * 2;
+      const color = pct >= 0 ? 'var(--green)' : 'var(--red)';
+      const medal = i === 0 && pct > 0 ? ' 🏆' : '';
+      return `<div style="margin-bottom:12px">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px">
+          <span style="font-family:var(--font-m);font-size:12px;color:var(--text)">${s.name}${medal}</span>
+          <span style="font-family:var(--font-m);font-size:11px;color:var(--text2)">${fmtNT(s.profitAmt)} <span style="color:${color};font-weight:600">${fmtPct(pct)}</span></span>
+        </div>
+        <div style="background:var(--bg3);border-radius:6px;height:8px;overflow:hidden">
+          <div style="width:${barW}%;height:100%;background:${color};border-radius:6px;transition:width .5s"></div>
+        </div>
+      </div>`;
+    }).join('')}
+  `;
+
+  // 股利總覽
+  const divsStocks = stocks.filter(s => s.divAmount > 0);
+  document.getElementById('stockDividendSummary').innerHTML = `
+    <div class="sec">股利收入總覽</div>
+    <div style="display:flex;align-items:baseline;gap:12px;margin-bottom:12px">
+      <span style="font-family:var(--font-d);font-size:22px;font-weight:700;color:var(--accent3)">${fmtNT(totalDiv)}</span>
+      <span style="font-family:var(--font-m);font-size:11px;color:var(--text3)">累計除息金額</span>
+    </div>
+    ${divsStocks.map((s, i) => {
+      const pct = totalDiv > 0 ? ((s.divAmount / totalDiv) * 100).toFixed(0) : 0;
+      return `<div style="display:flex;justify-content:space-between;font-family:var(--font-m);font-size:12px;padding:6px 0;border-bottom:1px solid var(--border)">
+        <span style="color:${COLORS_HEX[stocks.indexOf(s) % 6]};font-weight:600">${s.name}</span>
+        <span style="color:var(--text2)">NT$${fmtNum(s.divAmount)} (${pct}%) · ${s.lastDivDate || '-'}</span>
+      </div>`;
+    }).join('')}
+  `;
 
   // Purchase table
   document.getElementById('purchaseTable').innerHTML = `
