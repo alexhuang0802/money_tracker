@@ -480,20 +480,37 @@ function renderOverview() {
     </div>
   `;
 
-  // ── 1. 每月存錢率 ──
-  const saveRate = curIncome > 0 ? Math.round(((curIncome - curExpense) / curIncome) * 100) : 0;
-  const saveColor = saveRate >= 50 ? 'var(--green)' : saveRate >= 20 ? 'var(--accent3)' : 'var(--red)';
-  const saveEmoji = saveRate >= 50 ? '🎯' : saveRate >= 20 ? '💪' : saveRate > 0 ? '😬' : '📭';
+  // ── 1. 每月存錢率（過往平均，排除投資） ──
+  // 每月支出排除投資，算各月存錢率
+  const saveRates = [];
+  m.forEach(r => {
+    if (r.name >= curMonthKey || r.totalIncome <= 0) return;
+    const mExpNoInv = expByMonthId[r.id] || 0; // 已排除投資的月支出
+    const rate = Math.round(((r.totalIncome - mExpNoInv) / r.totalIncome) * 100);
+    saveRates.push({ name: r.name, rate, income: r.totalIncome, expense: mExpNoInv });
+  });
+  const avgSaveRate = saveRates.length > 0 ? Math.round(saveRates.reduce((s, r) => s + r.rate, 0) / saveRates.length) : 0;
+  const totalAvgIncome = saveRates.length > 0 ? Math.round(saveRates.reduce((s, r) => s + r.income, 0) / saveRates.length) : 0;
+  const totalAvgExpense = saveRates.length > 0 ? Math.round(saveRates.reduce((s, r) => s + r.expense, 0) / saveRates.length) : 0;
+  const saveColor = avgSaveRate >= 50 ? 'var(--green)' : avgSaveRate >= 20 ? 'var(--accent3)' : 'var(--red)';
+  const saveEmoji = avgSaveRate >= 50 ? '🎯' : avgSaveRate >= 20 ? '💪' : avgSaveRate > 0 ? '😬' : '📭';
+  // 最高和最低月份
+  const bestMonth = saveRates.length > 0 ? saveRates.reduce((a, b) => a.rate > b.rate ? a : b) : null;
+  const worstMonth = saveRates.length > 0 ? saveRates.reduce((a, b) => a.rate < b.rate ? a : b) : null;
   document.getElementById('savingsRate').innerHTML = `
-    <div class="sec">本月存錢率</div>
+    <div class="sec">平均存錢率（排除投資，${saveRates.length} 個月）</div>
     <div style="text-align:center;padding:12px 0">
       <div style="font-size:36px;margin-bottom:8px">${saveEmoji}</div>
-      <div style="font-family:var(--font-d);font-size:32px;font-weight:700;color:${saveColor}">${saveRate}%</div>
-      <div style="font-family:var(--font-m);font-size:11px;color:var(--text3);margin-top:4px">收入 ${fmtNT(curIncome)} − 支出 ${fmtNT(curExpense)} = ${fmtNT(curIncome - curExpense)}</div>
+      <div style="font-family:var(--font-d);font-size:32px;font-weight:700;color:${saveColor}">${avgSaveRate}%</div>
+      <div style="font-family:var(--font-m);font-size:11px;color:var(--text3);margin-top:4px">月均收入 ${fmtNT(totalAvgIncome)} − 月均支出 ${fmtNT(totalAvgExpense)}</div>
       <div style="background:var(--bg3);border-radius:6px;height:10px;margin-top:12px;overflow:hidden">
-        <div style="width:${Math.min(Math.max(saveRate, 0), 100)}%;height:100%;background:${saveColor};border-radius:6px;transition:width .5s"></div>
+        <div style="width:${Math.min(Math.max(avgSaveRate, 0), 100)}%;height:100%;background:${saveColor};border-radius:6px;transition:width .5s"></div>
       </div>
       <div style="display:flex;justify-content:space-between;font-family:var(--font-m);font-size:9px;color:var(--text3);margin-top:4px"><span>0%</span><span>50%</span><span>100%</span></div>
+      ${bestMonth && worstMonth ? `<div style="display:flex;justify-content:space-between;font-family:var(--font-m);font-size:10px;margin-top:10px;color:var(--text3)">
+        <span>🏆 最高 ${bestMonth.name} <span style="color:var(--green)">${bestMonth.rate}%</span></span>
+        <span>📉 最低 ${worstMonth.name} <span style="color:var(--red)">${worstMonth.rate}%</span></span>
+      </div>` : ''}
     </div>
   `;
 
