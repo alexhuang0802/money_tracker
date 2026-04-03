@@ -194,12 +194,6 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-b);font-size:
     </div>
   </div>
   <div class="card" id="incomeCategoryProgress"></div>
-  <div class="card">
-    <div class="sec">所有收入記錄</div>
-    <div style="max-height:400px;overflow-y:auto">
-      <table class="tbl" id="incomeTable"></table>
-    </div>
-  </div>
 </div>
 
 <!-- ===================== 支出 ===================== -->
@@ -571,9 +565,10 @@ function renderIncome() {
     const pct = avgT > 0 ? Math.round((cur / avgT) * 100) : (cur > 0 ? 999 : 0);
     const barW = Math.min(pct, 100);
     const color = pct >= 100 ? 'var(--green)' : pct >= 50 ? 'var(--accent3)' : 'var(--text3)';
+    const crown = pct >= 100 ? ' 👑' : '';
     return `<div style="margin-bottom:12px">
       <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px">
-        <span style="font-family:var(--font-m);font-size:12px;color:var(--text)">${tag}</span>
+        <span style="font-family:var(--font-m);font-size:12px;color:var(--text)">${tag}${crown}</span>
         <span style="font-family:var(--font-m);font-size:11px;color:var(--text2)">${fmtNT(cur)} / ${fmtNT(avgT)} <span style="color:${color};font-weight:600">${pct}%</span></span>
       </div>
       <div style="background:var(--bg3);border-radius:6px;height:8px;overflow:hidden">
@@ -587,12 +582,6 @@ function renderIncome() {
     ${progressHTML || '<div style="color:var(--text3);font-size:12px;font-family:var(--font-m)">本月尚無收入紀錄</div>'}
   `;
 
-  // Table
-  const sorted = [...items].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
-  document.getElementById('incomeTable').innerHTML = `
-    <thead><tr><th>日期</th><th>來源</th><th>分類</th><th class="right">金額</th></tr></thead>
-    <tbody>${sorted.map(r => `<tr><td>${r.date || '-'}</td><td>${r.source}</td><td><span class="tag tag-income">${r.tag || '-'}</span></td><td class="right" style="color:var(--green)">${fmtNT(r.amount)}</td></tr>`).join('')}</tbody>
-  `;
 }
 
 // ── 支出 ──
