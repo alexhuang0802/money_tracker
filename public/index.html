@@ -531,7 +531,7 @@ function renderIncome() {
 
   // ── 本月分類達成率 ──
   // 用 monthId 分組（跟支出一樣的邏輯）
-  const incNoOpen = items.filter(e => e.source !== '開帳' && e.tag !== '投資');
+  const incNoOpen = items.filter(e => e.source !== '開帳');
   // 按 monthId 算每月收入總額
   const incByMonthId = {};
   incNoOpen.forEach(e => {
