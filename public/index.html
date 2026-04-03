@@ -542,12 +542,17 @@ function renderIncome() {
   const curMonthItems = items.filter(r => r.date && r.date.slice(0, 4) + r.date.slice(5, 7) === curMK);
   const curByTag = {};
   curMonthItems.forEach(r => { const t = r.tag || '未分類'; curByTag[t] = (curByTag[t] || 0) + r.amount; });
-  // 過往各分類總額（排除開帳、排除當月），除以總月份數
-  const pastItems = items.filter(r => r.date && r.source !== '開帳' && r.date.slice(0, 4) + r.date.slice(5, 7) !== curMK);
-  // 算總月份數：跟整體 trimmedAvg 一樣的分母（排除0月、排除前2高月）
-  const incMonthTotals = DATA.monthly.filter(r => r.name !== curMK).map(r => r.totalIncome - (openByM[r.name] || 0));
-  const incValidMonths = incMonthTotals.filter(v => v > 0).sort((a, b) => a - b);
-  const incMonthCount = Math.max(incValidMonths.length <= 2 ? 1 : incValidMonths.length - 2, 1);
+  // 找出前2高月，排除它們的分類金額
+  const incMonthAdj = DATA.monthly.map(r => ({ name: r.name, val: r.totalIncome - (openByM[r.name] || 0) })).filter(r => r.name !== curMK && r.val > 0);
+  incMonthAdj.sort((a, b) => b.val - a.val);
+  const top2IncMonths = new Set(incMonthAdj.slice(0, 2).map(r => r.name));
+  const incMonthCount = Math.max(incMonthAdj.length - 2, 1);
+  // 過往各分類（排除開帳、排除當月、排除前2高月）
+  const pastItems = items.filter(r => {
+    if (!r.date || r.source === '開帳') return false;
+    const mk = r.date.slice(0, 4) + r.date.slice(5, 7);
+    return mk !== curMK && !top2IncMonths.has(mk);
+  });
   // 各分類加總
   const tagTotals = {};
   pastItems.forEach(r => { const t = r.tag || '未分類'; tagTotals[t] = (tagTotals[t] || 0) + r.amount; });
@@ -647,12 +652,12 @@ function renderExpenses() {
   const curExpItems = expNoInvest.filter(r => r.date && r.date.slice(0, 4) + r.date.slice(5, 7) === curMKE);
   const curExpByTag = {};
   curExpItems.forEach(r => { const t = r.tag || '未分類'; curExpByTag[t] = (curExpByTag[t] || 0) + r.amount; });
-  // 過往各分類總額（排除投資、排除當月），除以總月份數
-  const pastExpItems = expNoInvest.filter(r => r.date && r.date.slice(0, 4) + r.date.slice(5, 7) !== curMKE);
-  // 總月份數：跟整體支出 trimmedAvg 一樣的分母
-  const expAllMonthVals = Object.values(expByMonth);
-  const expValidMonths = expAllMonthVals.filter(v => v > 0).sort((a, b) => a - b);
-  const expMonthCount = Math.max(expValidMonths.length <= 2 ? 1 : expValidMonths.length - 2, 1);
+  // 找出前2高月的 monthId，排除它們
+  const expMonthEntries = Object.entries(expByMonth).filter(([,v]) => v > 0).sort((a, b) => b[1] - a[1]);
+  const top2MonthIds = new Set(expMonthEntries.slice(0, 2).map(e => e[0]));
+  const expMonthCount = Math.max(expMonthEntries.length - 2, 1);
+  // 過往各分類（排除投資、排除當月、排除前2高月）
+  const pastExpItems = expNoInvest.filter(r => r.date && r.date.slice(0, 4) + r.date.slice(5, 7) !== curMKE && !top2MonthIds.has(r.monthId));
   // 各分類加總
   const expTagTotals = {};
   pastExpItems.forEach(r => { const t = r.tag || '未分類'; expTagTotals[t] = (expTagTotals[t] || 0) + r.amount; });
