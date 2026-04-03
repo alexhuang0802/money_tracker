@@ -542,20 +542,18 @@ function renderIncome() {
   const curMonthItems = items.filter(r => r.date && r.date.slice(0, 4) + r.date.slice(5, 7) === curMK);
   const curByTag = {};
   curMonthItems.forEach(r => { const t = r.tag || '未分類'; curByTag[t] = (curByTag[t] || 0) + r.amount; });
-  // 過往每月各分類金額（排除開帳、排除當月）
+  // 過往各分類總額（排除開帳、排除當月），除以總月份數
   const pastItems = items.filter(r => r.date && r.source !== '開帳' && r.date.slice(0, 4) + r.date.slice(5, 7) !== curMK);
-  const tagByMonth = {};
-  pastItems.forEach(r => {
-    const t = r.tag || '未分類';
-    const mk = r.date.slice(0, 4) + r.date.slice(5, 7);
-    if (!tagByMonth[t]) tagByMonth[t] = {};
-    tagByMonth[t][mk] = (tagByMonth[t][mk] || 0) + r.amount;
-  });
-  // 各分類的 trimmedAvg
+  // 算總月份數：跟整體 trimmedAvg 一樣的分母（排除0月、排除前2高月）
+  const incMonthTotals = DATA.monthly.filter(r => r.name !== curMK).map(r => r.totalIncome - (openByM[r.name] || 0));
+  const incValidMonths = incMonthTotals.filter(v => v > 0).sort((a, b) => a - b);
+  const incMonthCount = Math.max(incValidMonths.length <= 2 ? 1 : incValidMonths.length - 2, 1);
+  // 各分類加總
+  const tagTotals = {};
+  pastItems.forEach(r => { const t = r.tag || '未分類'; tagTotals[t] = (tagTotals[t] || 0) + r.amount; });
+  // 各分類平均 = 總額 / 總月份數
   const tagAvgs = {};
-  Object.entries(tagByMonth).forEach(([tag, months]) => {
-    tagAvgs[tag] = trimmedAvg(Object.values(months));
-  });
+  Object.entries(tagTotals).forEach(([tag, total]) => { tagAvgs[tag] = Math.round(total / incMonthCount); });
   // 收集所有出現過的分類
   const allTags = [...new Set([...Object.keys(curByTag), ...Object.keys(tagAvgs)])].filter(t => tagAvgs[t] > 0 || curByTag[t] > 0);
   allTags.sort((a, b) => (curByTag[b] || 0) - (curByTag[a] || 0));
@@ -649,19 +647,18 @@ function renderExpenses() {
   const curExpItems = expNoInvest.filter(r => r.date && r.date.slice(0, 4) + r.date.slice(5, 7) === curMKE);
   const curExpByTag = {};
   curExpItems.forEach(r => { const t = r.tag || '未分類'; curExpByTag[t] = (curExpByTag[t] || 0) + r.amount; });
-  // 過往每月各分類（排除投資、排除當月）
+  // 過往各分類總額（排除投資、排除當月），除以總月份數
   const pastExpItems = expNoInvest.filter(r => r.date && r.date.slice(0, 4) + r.date.slice(5, 7) !== curMKE);
-  const expTagByMonth = {};
-  pastExpItems.forEach(r => {
-    const t = r.tag || '未分類';
-    const mk = r.date.slice(0, 4) + r.date.slice(5, 7);
-    if (!expTagByMonth[t]) expTagByMonth[t] = {};
-    expTagByMonth[t][mk] = (expTagByMonth[t][mk] || 0) + r.amount;
-  });
+  // 總月份數：跟整體支出 trimmedAvg 一樣的分母
+  const expAllMonthVals = Object.values(expByMonth);
+  const expValidMonths = expAllMonthVals.filter(v => v > 0).sort((a, b) => a - b);
+  const expMonthCount = Math.max(expValidMonths.length <= 2 ? 1 : expValidMonths.length - 2, 1);
+  // 各分類加總
+  const expTagTotals = {};
+  pastExpItems.forEach(r => { const t = r.tag || '未分類'; expTagTotals[t] = (expTagTotals[t] || 0) + r.amount; });
+  // 各分類平均 = 總額 / 總月份數
   const expTagAvgs = {};
-  Object.entries(expTagByMonth).forEach(([tag, months]) => {
-    expTagAvgs[tag] = trimmedAvg(Object.values(months));
-  });
+  Object.entries(expTagTotals).forEach(([tag, total]) => { expTagAvgs[tag] = Math.round(total / expMonthCount); });
   const allExpTags = [...new Set([...Object.keys(curExpByTag), ...Object.keys(expTagAvgs)])].filter(t => expTagAvgs[t] > 0 || curExpByTag[t] > 0);
   allExpTags.sort((a, b) => (curExpByTag[b] || 0) - (curExpByTag[a] || 0));
 
