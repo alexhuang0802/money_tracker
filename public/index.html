@@ -82,8 +82,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-b);font-size:
 
 /* Hero */
 .hero{background:linear-gradient(135deg,rgba(232,132,90,.07),rgba(91,155,213,.05));border:1px solid rgba(232,132,90,.25);border-radius:16px;padding:24px 28px;margin-bottom:16px}
-.hero-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;text-align:center}
-@media(max-width:600px){.hero-grid{grid-template-columns:1fr 1fr}}
+.hero-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;text-align:center}
 .hero-val{font-family:var(--font-d);font-size:28px;font-weight:700;line-height:1.1}
 .hero-label{font-size:11px;color:var(--text2);margin-bottom:4px;font-family:var(--font-m)}
 .hero-sub{font-size:11px;color:var(--text3);margin-top:2px;font-family:var(--font-m)}
@@ -387,9 +386,9 @@ function renderOverview() {
 
   const grandTotal = totalNet + stockTotal;
   document.getElementById('heroStats').innerHTML = `
-    <div><div class="hero-label">基金總額</div><div class="hero-val" style="color:${totalNet >= 0 ? 'var(--green)' : 'var(--red)'}">${fmtNT(totalNet)}</div></div>
-    <div><div class="hero-label">總資產</div><div class="hero-val" style="color:var(--accent)">${fmtNT(grandTotal)}</div></div>
-    <div><div class="hero-label">股票市值</div><div class="hero-val" style="color:var(--accent2)">${fmtNT(stockTotal)}</div></div>
+    <div style="grid-column:1;text-align:center"><div class="hero-label">基金總額</div><div class="hero-val" style="color:${totalNet >= 0 ? 'var(--green)' : 'var(--red)'}">${fmtNT(totalNet)}</div></div>
+    <div style="grid-column:2;text-align:center"><div class="hero-label">股票市值</div><div class="hero-val" style="color:var(--accent2)">${fmtNT(stockTotal)}</div></div>
+    <div style="grid-column:1/-1;text-align:center;padding-top:8px"><div class="hero-label">總資產</div><div class="hero-val" style="color:var(--accent);font-size:32px">${fmtNT(grandTotal)}</div></div>
   `;
 
   // Monthly trend chart
