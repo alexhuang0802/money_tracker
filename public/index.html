@@ -903,10 +903,6 @@ function updateSimulation() {
           <div><label>每月投入</label><input type="number" id="sim-add-${i}" value="5000" step="1000"></div>
           <div><label>年化成長率 %</label><input type="number" id="sim-gr-${i}" value="${def.gr}" step="0.5"></div>
           <div><label>年化配息率 %</label><input type="number" id="sim-dr-${i}" value="${def.dr}" step="0.5"></div>
-          <div>
-            <label>配息方式</label>
-            <button type="button" id="sim-dtc-${i}" class="sim-toggle" data-val="0" onclick="this.dataset.val=this.dataset.val==='0'?'1':'0';this.textContent=this.dataset.val==='1'?'💰 領現金':'🔄 再投入';runSimulation()" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);font-family:var(--font-m);font-size:13px;cursor:pointer;color:var(--text)">🔄 再投入</button>
-          </div>
         </div>
       </div>`;
     }).join('');
@@ -937,7 +933,7 @@ function runSimulation() {
     monthlyAdd: +document.getElementById(`sim-add-${i}`)?.value || 0,
     growthRate: (+document.getElementById(`sim-gr-${i}`)?.value || 0) / 100,
     divRate: (+document.getElementById(`sim-dr-${i}`)?.value || 0) / 100,
-    divToCash: (document.getElementById(`sim-dtc-${i}`)?.dataset?.val || '0') === '1',
+    divToCash: false,
     name: s.name,
   }));
 
@@ -993,10 +989,10 @@ function runSimulation() {
     </div>
   `;
 
-  // Chart
+  // Chart - 每半年一個點，讓複利曲線更平滑
   document.getElementById('simChartWrap').style.display = '';
-  const yrPts = timeline.filter(d => d.mo % 12 === 0);
-  simData = { yrPts, goal, goalYear, labels: yrPts.map(d => d.mo === 0 ? '現在' : `+${d.mo/12}年`) };
+  const yrPts = timeline.filter(d => d.mo % 6 === 0);
+  simData = { yrPts, goal, goalYear, labels: yrPts.map(d => d.mo === 0 ? '現在' : d.mo % 12 === 0 ? `+${d.mo/12}年` : '') };
   renderSimChart(simView);
 
   // Breakdown
