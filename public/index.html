@@ -871,10 +871,10 @@ function updateSimulation() {
   // 各股預設參數
   function getDefaults(s) {
     const n = s.name.toUpperCase();
-    if (n === '0050') return { gr: 8, dr: 3 };
-    if (n === '0056') return { gr: 5, dr: 5 };
-    if ((s.market || '').includes('美')) return { gr: 10, dr: 10 };
-    return { gr: 10, dr: 3 };
+    if (n === '0050') return { gr: 8, dr: 3, grLocked: false };
+    if (n === '0056') return { gr: 5, dr: 5, grLocked: false };
+    if ((s.market || '').includes('美')) return { gr: 0, dr: 9.5, grLocked: true };
+    return { gr: 10, dr: 3, grLocked: false };
   }
 
   // 自動帶入真實數據
@@ -897,7 +897,7 @@ function updateSimulation() {
         </div>
         <div class="sim-inputs" style="margin-bottom:0">
           <div><label>每月投入</label><input type="number" id="sim-add-${i}" value="5000" step="1000"></div>
-          <div><label>年化成長率 %</label><input type="number" id="sim-gr-${i}" value="${def.gr}" step="0.5"></div>
+          <div><label>年化成長率 %</label><input type="number" id="sim-gr-${i}" value="${def.gr}" step="0.5" ${def.grLocked ? 'readonly style="opacity:.5;cursor:not-allowed"' : ''}></div>
           <div><label>年化配息率 %</label><input type="number" id="sim-dr-${i}" value="${def.dr}" step="0.5"></div>
           <div><label>目前月配息</label><div style="padding:8px 10px;background:rgba(232,163,58,.08);border:1px solid rgba(232,163,58,.25);border-radius:8px;font-family:var(--font-m);font-size:14px;color:var(--accent3)">${fmtNT(Math.round(s.marketValue * def.dr / 100 / 12))}</div></div>
         </div>
