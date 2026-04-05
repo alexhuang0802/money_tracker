@@ -878,15 +878,8 @@ function updateSimulation() {
 
   // 自動帶入真實數據
   if (!document.querySelector('.sim-stock-card')) {
-    // 月平均淨存入（排除投資的支出）
-    const simExpNoInv = DATA.expenses.filter(e => e.tag !== '投資');
-    const simExpByMonth = {};
-    simExpNoInv.forEach(e => { if (e.monthId) simExpByMonth[e.monthId] = (simExpByMonth[e.monthId] || 0) + e.amount; });
-    const simMonthlyNet = DATA.monthly.map(r => r.totalIncome - (simExpByMonth[r.id] || 0));
-    const autoSave = trimmedAvg(simMonthlyNet);
-    // 基金總額
+    // 基金總額自動帶入
     const autoTotalNet = DATA.monthly.reduce((s, r) => s + r.monthlyNet, 0);
-    document.getElementById('sim-save').value = autoSave;
     document.getElementById('sim-cash').value = Math.max(autoTotalNet, 0);
 
     document.getElementById('simStockInputs').innerHTML = stocks.map((s, i) => {
@@ -924,7 +917,6 @@ function runSimulation() {
   });
   const goal = (+document.getElementById('sim-goal').value || 500) * 10000;
   const yrs = +document.getElementById('sim-yrs').value || 10;
-  const cashSave = +document.getElementById('sim-save').value || 0;
   const initCash = +document.getElementById('sim-cash').value || 0;
 
   const stockParams = stocks.map((s, i) => ({
