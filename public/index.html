@@ -121,6 +121,36 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-b);font-size:
 .gauge-avg-line{position:absolute;left:0;right:0;height:2px;border-top:2px dashed rgba(0,0,0,.25);z-index:3}
 .gauge-avg-label{position:absolute;right:6px;font-size:9px;font-family:var(--font-m);color:rgba(0,0,0,.4);transform:translateY(-12px)}
 .gauge-pct{text-align:center;margin-top:8px;font-family:var(--font-m);font-size:12px}
+
+/* ── 手機 RWD ── */
+@media(max-width:480px){
+  .wrap{padding:16px 10px 60px}
+  header h1{font-size:20px!important}
+  .htag{font-size:9px;padding:3px 8px}
+  .hero{padding:16px 12px}
+  .hero-val{font-size:18px}
+  .hero-label{font-size:10px}
+  .hero-grid{gap:10px}
+  .nav{gap:3px;padding:5px}
+  .nav-btn{padding:5px 10px;font-size:11px}
+  .g4{grid-template-columns:1fr 1fr}
+  .stat{padding:10px}
+  .stat-val{font-size:16px}
+  .stat-label{font-size:10px}
+  .chart-wrap{padding:10px}
+  .chart-wrap canvas{max-height:180px}
+  .sec{font-size:10px}
+  .sim-inputs{grid-template-columns:1fr 1fr;gap:8px}
+  .sim-inputs input,.sim-inputs div>div{font-size:12px;padding:6px 8px}
+  .sim-inputs label{font-size:10px}
+  .tbl{font-size:10px}
+  .tbl th,.tbl td{padding:4px 3px}
+  .stock-grid{grid-template-columns:1fr}
+  .sp{padding:12px}
+  .card{padding:12px}
+  .gauge-card{padding:12px}
+  .fn{font-size:10px}
+}
 </style>
 </head>
 <body>
