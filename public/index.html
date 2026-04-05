@@ -253,7 +253,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-b);font-size:
     <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap">
       <button class="nav-btn active" onclick="setSimView('total',event)">總資產</button>
       <button class="nav-btn" onclick="setSimView('stock',event)">存股市值</button>
-      <button class="nav-btn" onclick="setSimView('divMonthly',event)">每月配息</button>
+      <button class="nav-btn" onclick="setSimView('divMonthly',event)">月被動收入</button>
       <button class="nav-btn" onclick="setSimView('cash',event)">現金</button>
     </div>
     <canvas id="simChart"></canvas>
@@ -975,7 +975,7 @@ function runSimulation() {
     </div>
     <div class="hero-grid">
       <div><div class="hero-label">存股市值</div><div class="hero-val" style="color:var(--accent2)">${fmtNT(final.stockTotal)}</div></div>
-      <div><div class="hero-label">每月配息</div><div class="hero-val" style="color:var(--accent3)">${fmtNT(final.divMonthly)}</div></div>
+      <div><div class="hero-label">預估月被動收入</div><div class="hero-val" style="color:var(--accent3)">${fmtNT(final.divMonthly)}</div></div>
       <div><div class="hero-label">現金</div><div class="hero-val">${fmtNT(final.cash)}</div></div>
     </div>
   `;
@@ -990,7 +990,7 @@ function runSimulation() {
   document.getElementById('simBreakdown').style.display = '';
   const COLORS_HEX = ['#e8845a','#5b9bd5','#e8a23a','#e06b7a','#7cb87c','#9b7ec8'];
   document.getElementById('simTable').innerHTML = `
-    <thead><tr><th>股票</th><th class="right">現值</th><th class="right">月投入</th><th class="right">${yrs}年後市值</th><th class="right">月配息</th></tr></thead>
+    <thead><tr><th>股票</th><th class="right">現值</th><th class="right">月投入</th><th class="right">${yrs}年後市值</th><th class="right">預估月被動收入</th></tr></thead>
     <tbody>
     ${stockParams.map((p, i) => `<tr>
       <td style="color:${COLORS_HEX[i%6]}">${p.name}</td>
