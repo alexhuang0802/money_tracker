@@ -388,8 +388,8 @@ function renderOverview() {
   const grandTotal = totalNet + stockTotal;
   document.getElementById('heroStats').innerHTML = `
     <div><div class="hero-label">基金總額</div><div class="hero-val" style="color:${totalNet >= 0 ? 'var(--green)' : 'var(--red)'}">${fmtNT(totalNet)}</div></div>
-    <div><div class="hero-label">股票市值</div><div class="hero-val" style="color:var(--accent2)">${fmtNT(stockTotal)}</div></div>
     <div><div class="hero-label">總資產</div><div class="hero-val" style="color:var(--accent)">${fmtNT(grandTotal)}</div></div>
+    <div><div class="hero-label">股票市值</div><div class="hero-val" style="color:var(--accent2)">${fmtNT(stockTotal)}</div></div>
   `;
 
   // Monthly trend chart
