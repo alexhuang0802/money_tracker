@@ -239,8 +239,8 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-b);font-size:
     <div class="sim-inputs">
       <div><label>目標財富（萬元）</label><input type="number" id="sim-goal" value="500" step="50"></div>
       <div><label>期望年限</label><input type="number" id="sim-yrs" value="10" step="1" min="1" max="40"></div>
-      <div><label>每月淨存入</label><input type="number" id="sim-save" value="16000" step="500"></div>
-      <div><label>目前現金</label><input type="number" id="sim-cash" value="325000" step="1000"></div>
+      <div><label>每月淨存入（自動帶入）</label><input type="number" id="sim-save" value="0" step="500"></div>
+      <div><label>目前現金（自動帶入）</label><input type="number" id="sim-cash" value="0" step="1000"></div>
     </div>
   </div>
 
@@ -856,11 +856,22 @@ function renderStocks() {
 
 // ── 財富預測 ──
 function updateSimulation() {
-  const stocks = DATA.stocks;
+  const stocks = DATA.stocks.filter(s => s.held > 0 || s.marketValue > 0);
   const COLORS_HEX = ['#e8845a','#5b9bd5','#e8a23a','#e06b7a','#7cb87c','#9b7ec8'];
 
-  // Build per-stock inputs
+  // 自動帶入真實數據
   if (!document.querySelector('.sim-stock-card')) {
+    // 月平均淨存入（排除投資的支出）
+    const simExpNoInv = DATA.expenses.filter(e => e.tag !== '投資');
+    const simExpByMonth = {};
+    simExpNoInv.forEach(e => { if (e.monthId) simExpByMonth[e.monthId] = (simExpByMonth[e.monthId] || 0) + e.amount; });
+    const simMonthlyNet = DATA.monthly.map(r => r.totalIncome - (simExpByMonth[r.id] || 0));
+    const autoSave = trimmedAvg(simMonthlyNet);
+    // 基金總額
+    const autoTotalNet = DATA.monthly.reduce((s, r) => s + r.monthlyNet, 0);
+    document.getElementById('sim-save').value = autoSave;
+    document.getElementById('sim-cash').value = Math.max(autoTotalNet, 0);
+
     document.getElementById('simStockInputs').innerHTML = stocks.map((s, i) => `
       <div class="card sim-stock-card" style="margin-bottom:8px">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
@@ -872,7 +883,10 @@ function updateSimulation() {
           <div><label>每月投入</label><input type="number" id="sim-add-${i}" value="5000" step="1000"></div>
           <div><label>年化成長率 %</label><input type="number" id="sim-gr-${i}" value="10" step="0.5"></div>
           <div><label>年化配息率 %</label><input type="number" id="sim-dr-${i}" value="3" step="0.5"></div>
-          <div><label>配息流入現金</label><input type="number" id="sim-dtc-${i}" value="0" min="0" max="1" step="1"></div>
+          <div>
+            <label>配息方式</label>
+            <button type="button" id="sim-dtc-${i}" class="sim-toggle" data-val="0" onclick="this.dataset.val=this.dataset.val==='0'?'1':'0';this.textContent=this.dataset.val==='1'?'💰 領現金':'🔄 再投入';runSimulation()" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);font-family:var(--font-m);font-size:13px;cursor:pointer;color:var(--text)">🔄 再投入</button>
+          </div>
         </div>
       </div>
     `).join('');
@@ -886,7 +900,7 @@ function updateSimulation() {
 }
 
 function runSimulation() {
-  const stocks = DATA.stocks;
+  const stocks = DATA.stocks.filter(s => s.held > 0 || s.marketValue > 0);
   const goal = (+document.getElementById('sim-goal').value || 500) * 10000;
   const yrs = +document.getElementById('sim-yrs').value || 10;
   const cashSave = +document.getElementById('sim-save').value || 0;
@@ -897,7 +911,7 @@ function runSimulation() {
     monthlyAdd: +document.getElementById(`sim-add-${i}`)?.value || 0,
     growthRate: (+document.getElementById(`sim-gr-${i}`)?.value || 0) / 100,
     divRate: (+document.getElementById(`sim-dr-${i}`)?.value || 0) / 100,
-    divToCash: +document.getElementById(`sim-dtc-${i}`)?.value === 1,
+    divToCash: (document.getElementById(`sim-dtc-${i}`)?.dataset?.val || '0') === '1',
     name: s.name,
   }));
 
@@ -930,26 +944,33 @@ function runSimulation() {
 
   const final = timeline[mos];
 
+  // 找達標年份
+  const goalYrPt = timeline.find(d => d.total >= goal);
+  const goalYear = goalYrPt ? (goalYrPt.mo / 12).toFixed(1) : null;
+  const goalEmoji = final.total >= goal ? '🏆' : (final.total >= goal * 0.5 ? '🚀' : '🌱');
+
   // Hero
   document.getElementById('simHero').style.display = '';
   document.getElementById('simHero').innerHTML = `
-    <div class="hero-grid" style="grid-template-columns:repeat(4,1fr)">
-      <div><div class="hero-label">${yrs}年後總財富</div><div class="hero-val" style="color:var(--accent)">${fmtNT(final.total)}</div></div>
+    <div style="text-align:center;margin-bottom:16px">
+      <div style="font-size:48px">${goalEmoji}</div>
+      <div style="font-family:var(--font-d);font-size:32px;font-weight:700;color:var(--accent);margin-top:8px">${fmtNT(final.total)}</div>
+      <div style="font-family:var(--font-m);font-size:12px;color:var(--text3);margin-top:4px">${yrs} 年後總財富 · 目標 ${fmtNT(goal)}</div>
+      <div style="font-family:var(--font-m);font-size:12px;margin-top:6px;color:var(--text2)">
+        ${goalYear ? `預計第 <strong style="color:var(--green)">${goalYear}</strong> 年達標` : `還差 ${fmtNT(goal - final.total)}`}
+      </div>
+    </div>
+    <div class="hero-grid">
       <div><div class="hero-label">存股市值</div><div class="hero-val" style="color:var(--accent2)">${fmtNT(final.stockTotal)}</div></div>
       <div><div class="hero-label">每月配息</div><div class="hero-val" style="color:var(--accent3)">${fmtNT(final.divMonthly)}</div></div>
       <div><div class="hero-label">現金</div><div class="hero-val">${fmtNT(final.cash)}</div></div>
-    </div>
-    <div style="text-align:center;margin-top:12px;font-family:var(--font-m);font-size:12px;color:var(--text2)">
-      ${final.total >= goal
-        ? `已達標！預計 ${fmtNT(final.total)} 超過目標 ${fmtNT(goal)}`
-        : `距離目標 ${fmtNT(goal)} 還差 ${fmtNT(goal - final.total)}`}
     </div>
   `;
 
   // Chart
   document.getElementById('simChartWrap').style.display = '';
   const yrPts = timeline.filter(d => d.mo % 12 === 0);
-  simData = { yrPts, goal, labels: yrPts.map(d => d.mo === 0 ? '現在' : `+${d.mo/12}年`) };
+  simData = { yrPts, goal, goalYear, labels: yrPts.map(d => d.mo === 0 ? '現在' : `+${d.mo/12}年`) };
   renderSimChart(simView);
 
   // Breakdown
@@ -972,9 +993,12 @@ function runSimulation() {
 }
 
 function renderSimChart(view) {
-  const { yrPts, goal, labels } = simData;
+  const { yrPts, goal, goalYear, labels } = simData;
   if (!yrPts) return;
   const fld = view === 'stock' ? 'stockTotal' : view === 'divMonthly' ? 'divMonthly' : view === 'cash' ? 'cash' : 'total';
+  // 達標年份標記點（只在總資產視圖）
+  const goalIdx = (view === 'total' && goalYear) ? yrPts.findIndex(d => d.total >= goal) : -1;
+  const markerData = yrPts.map((d, i) => i === goalIdx ? Math.round(d.total) : null);
   if (simChartInst) simChartInst.destroy();
   simChartInst = new Chart(document.getElementById('simChart'), {
     type: 'line',
@@ -983,6 +1007,7 @@ function renderSimChart(view) {
       datasets: [
         { label: '預測', data: yrPts.map(d => Math.round(d[fld])), borderColor: '#e8845a', backgroundColor: 'rgba(232,132,90,.08)', borderWidth: 2.5, pointRadius: 2, tension: .4, fill: true },
         ...(view === 'total' ? [{ label: '目標', data: Array(labels.length).fill(goal), borderColor: 'rgba(224,107,122,.5)', borderWidth: 1, pointRadius: 0, borderDash: [6,4], backgroundColor: 'transparent' }] : []),
+        ...(goalIdx >= 0 ? [{ label: '達標', data: markerData, borderColor: 'transparent', backgroundColor: '#6ab070', pointRadius: 10, pointStyle: 'star', pointBorderColor: '#4a8a50', pointBorderWidth: 2, showLine: false }] : []),
       ]
     },
     options: chartOpts('NT$')
