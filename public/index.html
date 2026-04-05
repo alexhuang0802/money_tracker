@@ -924,7 +924,7 @@ function runSimulation() {
     monthlyAdd: +document.getElementById(`sim-add-${i}`)?.value || 0,
     growthRate: (+document.getElementById(`sim-gr-${i}`)?.value || 0) / 100,
     divRate: (+document.getElementById(`sim-dr-${i}`)?.value || 0) / 100,
-    divToCash: false,
+    divToCash: true,
     name: s.name,
   }));
 
@@ -951,7 +951,7 @@ function runSimulation() {
     const divMonthly = allSim.reduce((s, d) => s + d[mo].monthlyDiv, 0);
     const divCum = allSim.reduce((s, d) => s + d[mo].cumDiv, 0);
     const strcCash = allSim.reduce((s, d) => s + d[mo].cashFromDiv, 0);
-    const cash = initCash;
+    const cash = initCash + strcCash;
     timeline.push({ mo, stockTotal, divMonthly, divCum, cash, total: stockTotal + cash });
   }
 
