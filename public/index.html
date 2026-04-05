@@ -239,8 +239,10 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-b);font-size:
     <div class="sim-inputs">
       <div><label>目標財富（萬元）</label><input type="number" id="sim-goal" value="500" step="50"></div>
       <div><label>期望年限</label><input type="number" id="sim-yrs" value="10" step="1" min="1" max="40"></div>
-      <div><label>目前現金（自動帶入）</label><input type="number" id="sim-cash" value="0" step="1000"></div>
+      <div><label>每月固定存入</label><input type="number" id="sim-monthly-income" value="40000" step="1000"></div>
+      <div><label>房貸還款</label><input type="number" id="sim-mortgage" value="0" step="500"></div>
     </div>
+    <div id="simBudgetSummary" style="margin-top:12px"></div>
   </div>
 
   <div id="simStockInputs"></div>
@@ -251,10 +253,9 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-b);font-size:
   <div class="chart-wrap" id="simChartWrap" style="display:none">
     <div class="sec">資產成長曲線</div>
     <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap">
-      <button class="nav-btn active" onclick="setSimView('total',event)">總資產</button>
-      <button class="nav-btn" onclick="setSimView('stock',event)">存股市值</button>
+      <button class="nav-btn active" onclick="setSimView('total',event)">存股市值</button>
       <button class="nav-btn" onclick="setSimView('divMonthly',event)">月被動收入</button>
-      <button class="nav-btn" onclick="setSimView('cash',event)">現金</button>
+      <button class="nav-btn" onclick="setSimView('divCum',event)">累積配息</button>
     </div>
     <canvas id="simChart"></canvas>
   </div>
@@ -878,9 +879,12 @@ function updateSimulation() {
 
   // 自動帶入真實數據
   if (!document.querySelector('.sim-stock-card')) {
-    // 基金總額自動帶入
-    const autoTotalNet = DATA.monthly.reduce((s, r) => s + r.monthlyNet, 0);
-    document.getElementById('sim-cash').value = Math.max(autoTotalNet, 0);
+    // 自動帶入月平均花費（排除投資、排除前2高月）
+    const simExpNoInv = DATA.expenses.filter(e => e.tag !== '投資');
+    const simExpByMonth = {};
+    simExpNoInv.forEach(e => { if (e.monthId) simExpByMonth[e.monthId] = (simExpByMonth[e.monthId] || 0) + e.amount; });
+    const autoAvgExpense = trimmedAvg(Object.values(simExpByMonth));
+    window._simAvgExpense = autoAvgExpense;
 
     document.getElementById('simStockInputs').innerHTML = stocks.map((s, i) => {
       const def = getDefaults(s);
@@ -917,7 +921,11 @@ function runSimulation() {
   });
   const goal = (+document.getElementById('sim-goal').value || 500) * 10000;
   const yrs = +document.getElementById('sim-yrs').value || 10;
-  const initCash = +document.getElementById('sim-cash').value || 0;
+  const monthlyIncome = +document.getElementById('sim-monthly-income').value || 0;
+  const mortgage = +document.getElementById('sim-mortgage').value || 0;
+  const avgExpense = window._simAvgExpense || 0;
+  const available = monthlyIncome - avgExpense - mortgage;
+  const initCash = 0;
 
   const stockParams = stocks.map((s, i) => ({
     initVal: s.marketValue || 0,
@@ -927,6 +935,20 @@ function runSimulation() {
     divToCash: true,
     name: s.name,
   }));
+
+  // 預算摘要
+  const totalStockMonthly = stockParams.reduce((s, p) => s + p.monthlyAdd, 0);
+  const overBudget = totalStockMonthly > available;
+  document.getElementById('simBudgetSummary').innerHTML = `
+    <div style="display:flex;flex-wrap:wrap;gap:16px;font-family:var(--font-m);font-size:12px;padding:12px 16px;background:${overBudget ? 'rgba(224,107,122,.06)' : 'var(--bg2)'};border:1px solid ${overBudget ? 'rgba(224,107,122,.3)' : 'var(--border)'};border-radius:10px">
+      <div><span style="color:var(--text3)">固定存入</span> <strong>${fmtNT(monthlyIncome)}</strong></div>
+      <div><span style="color:var(--text3)">− 平均花費</span> <strong>${fmtNT(avgExpense)}</strong></div>
+      <div><span style="color:var(--text3)">− 房貸</span> <strong>${fmtNT(mortgage)}</strong></div>
+      <div><span style="color:var(--text3)">=</span> <strong style="color:${available >= 0 ? 'var(--green)' : 'var(--red)'}">可分配 ${fmtNT(available)}</strong></div>
+      <div><span style="color:var(--text3)">股票合計</span> <strong style="color:${overBudget ? 'var(--red)' : 'var(--text)'}">${fmtNT(totalStockMonthly)}/月</strong></div>
+      ${overBudget ? `<div style="color:var(--red);font-weight:600">⚠️ 超出 ${fmtNT(totalStockMonthly - available)}</div>` : `<div style="color:var(--green)">剩餘 ${fmtNT(available - totalStockMonthly)}</div>`}
+    </div>
+  `;
 
   function simStock(months, p) {
     let val = p.initVal, cumDiv = 0, cashFromDiv = 0;
@@ -958,17 +980,17 @@ function runSimulation() {
   const final = timeline[mos];
 
   // 找達標年份
-  const goalYrPt = timeline.find(d => d.total >= goal);
+  const goalYrPt = timeline.find(d => d.stockTotal >= goal);
   const goalYear = goalYrPt ? (goalYrPt.mo / 12).toFixed(1) : null;
-  const goalEmoji = final.total >= goal ? '🏆' : (final.total >= goal * 0.5 ? '🚀' : '🌱');
+  const goalEmoji = final.stockTotal >= goal ? '🏆' : (final.stockTotal >= goal * 0.5 ? '🚀' : '🌱');
 
   // Hero
   document.getElementById('simHero').style.display = '';
   document.getElementById('simHero').innerHTML = `
     <div style="text-align:center;margin-bottom:16px">
       <div style="font-size:48px">${goalEmoji}</div>
-      <div style="font-family:var(--font-d);font-size:32px;font-weight:700;color:var(--accent);margin-top:8px">${fmtNT(final.total)}</div>
-      <div style="font-family:var(--font-m);font-size:12px;color:var(--text3);margin-top:4px">${yrs} 年後總財富 · 目標 ${fmtNT(goal)}</div>
+      <div style="font-family:var(--font-d);font-size:32px;font-weight:700;color:var(--accent);margin-top:8px">${fmtNT(final.stockTotal)}</div>
+      <div style="font-family:var(--font-m);font-size:12px;color:var(--text3);margin-top:4px">${yrs} 年後存股市值 · 目標 ${fmtNT(goal)}</div>
       <div style="font-family:var(--font-m);font-size:12px;margin-top:6px;color:var(--text2)">
         ${goalYear ? `預計第 <strong style="color:var(--green)">${goalYear}</strong> 年達標` : `還差 ${fmtNT(goal - final.total)}`}
       </div>
@@ -976,7 +998,7 @@ function runSimulation() {
     <div class="hero-grid">
       <div><div class="hero-label">存股市值</div><div class="hero-val" style="color:var(--accent2)">${fmtNT(final.stockTotal)}</div></div>
       <div><div class="hero-label">預估月被動收入</div><div class="hero-val" style="color:var(--accent3)">${fmtNT(final.divMonthly)}</div></div>
-      <div><div class="hero-label">現金</div><div class="hero-val">${fmtNT(final.cash)}</div></div>
+      <div><div class="hero-label">累積配息</div><div class="hero-val">${fmtNT(final.divCum)}</div></div>
     </div>
   `;
 
@@ -999,19 +1021,18 @@ function runSimulation() {
       <td class="right">${fmtNT(allSim[i][mos].val)}</td>
       <td class="right" style="color:var(--accent3)">${fmtNT(allSim[i][mos].monthlyDiv)}</td>
     </tr>`).join('')}
-    <tr><td>現金</td><td class="right">${fmtNT(initCash)}</td><td class="right">-</td><td class="right">${fmtNT(initCash)}</td><td class="right">-</td></tr>
     </tbody>
-    <tfoot><tr><td>合計</td><td class="right">${fmtNT(stockParams.reduce((s,p)=>s+p.initVal,0)+initCash)}</td><td class="right">${fmtNT(stockParams.reduce((s,p)=>s+p.monthlyAdd,0))}/月</td><td class="right" style="color:var(--accent)">${fmtNT(final.total)}</td><td class="right" style="color:var(--accent3)">${fmtNT(final.divMonthly)}</td></tr></tfoot>
+    <tfoot><tr><td>合計</td><td class="right">${fmtNT(stockParams.reduce((s,p)=>s+p.initVal,0))}</td><td class="right">${fmtNT(totalStockMonthly)}/月</td><td class="right" style="color:var(--accent)">${fmtNT(final.stockTotal)}</td><td class="right" style="color:var(--accent3)">${fmtNT(final.divMonthly)}</td></tr></tfoot>
   `;
 }
 
 function renderSimChart(view) {
   const { yrPts, goal, goalYear, labels } = simData;
   if (!yrPts) return;
-  const fld = view === 'stock' ? 'stockTotal' : view === 'divMonthly' ? 'divMonthly' : view === 'cash' ? 'cash' : 'total';
+  const fld = view === 'divMonthly' ? 'divMonthly' : view === 'divCum' ? 'divCum' : 'stockTotal';
   // 達標年份標記點（只在總資產視圖）
-  const goalIdx = (view === 'total' && goalYear) ? yrPts.findIndex(d => d.total >= goal) : -1;
-  const markerData = yrPts.map((d, i) => i === goalIdx ? Math.round(d.total) : null);
+  const goalIdx = (view === 'stockTotal' && goalYear) ? yrPts.findIndex(d => d.stockTotal >= goal) : -1;
+  const markerData = yrPts.map((d, i) => i === goalIdx ? Math.round(d.stockTotal) : null);
   if (simChartInst) simChartInst.destroy();
   simChartInst = new Chart(document.getElementById('simChart'), {
     type: 'line',
@@ -1019,7 +1040,7 @@ function renderSimChart(view) {
       labels,
       datasets: [
         { label: '預測', data: yrPts.map(d => Math.round(d[fld])), borderColor: '#e8845a', backgroundColor: 'rgba(232,132,90,.08)', borderWidth: 2.5, pointRadius: 2, tension: .4, fill: true },
-        ...(view === 'total' ? [{ label: '目標', data: Array(labels.length).fill(goal), borderColor: 'rgba(224,107,122,.5)', borderWidth: 1, pointRadius: 0, borderDash: [6,4], backgroundColor: 'transparent' }] : []),
+        ...(fld === 'stockTotal' ? [{ label: '目標', data: Array(labels.length).fill(goal), borderColor: 'rgba(224,107,122,.5)', borderWidth: 1, pointRadius: 0, borderDash: [6,4], backgroundColor: 'transparent' }] : []),
         ...(goalIdx >= 0 ? [{ label: '達標', data: markerData, borderColor: 'transparent', backgroundColor: '#6ab070', pointRadius: 10, pointStyle: 'star', pointBorderColor: '#4a8a50', pointBorderWidth: 2, showLine: false }] : []),
       ]
     },
