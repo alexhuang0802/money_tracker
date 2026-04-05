@@ -239,7 +239,6 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-b);font-size:
     <div class="sim-inputs">
       <div><label>目標財富（萬元）</label><input type="number" id="sim-goal" value="500" step="50"></div>
       <div><label>期望年限</label><input type="number" id="sim-yrs" value="10" step="1" min="1" max="40"></div>
-      <div><label>每月淨存入（自動帶入）</label><input type="number" id="sim-save" value="0" step="500"></div>
       <div><label>目前現金（自動帶入）</label><input type="number" id="sim-cash" value="0" step="1000"></div>
     </div>
   </div>
@@ -960,7 +959,7 @@ function runSimulation() {
     const divMonthly = allSim.reduce((s, d) => s + d[mo].monthlyDiv, 0);
     const divCum = allSim.reduce((s, d) => s + d[mo].cumDiv, 0);
     const strcCash = allSim.reduce((s, d) => s + d[mo].cashFromDiv, 0);
-    const cash = initCash + cashSave * mo + strcCash;
+    const cash = initCash;
     timeline.push({ mo, stockTotal, divMonthly, divCum, cash, total: stockTotal + cash });
   }
 
@@ -1008,9 +1007,9 @@ function runSimulation() {
       <td class="right">${fmtNT(allSim[i][mos].val)}</td>
       <td class="right" style="color:var(--accent3)">${fmtNT(allSim[i][mos].monthlyDiv)}</td>
     </tr>`).join('')}
-    <tr><td>現金</td><td class="right">${fmtNT(initCash)}</td><td class="right">${fmtNT(cashSave)}/月</td><td class="right">${fmtNT(final.cash)}</td><td class="right">-</td></tr>
+    <tr><td>現金</td><td class="right">${fmtNT(initCash)}</td><td class="right">-</td><td class="right">${fmtNT(initCash)}</td><td class="right">-</td></tr>
     </tbody>
-    <tfoot><tr><td>合計</td><td class="right">${fmtNT(stockParams.reduce((s,p)=>s+p.initVal,0)+initCash)}</td><td class="right">${fmtNT(stockParams.reduce((s,p)=>s+p.monthlyAdd,0)+cashSave)}/月</td><td class="right" style="color:var(--accent)">${fmtNT(final.total)}</td><td class="right" style="color:var(--accent3)">${fmtNT(final.divMonthly)}</td></tr></tfoot>
+    <tfoot><tr><td>合計</td><td class="right">${fmtNT(stockParams.reduce((s,p)=>s+p.initVal,0)+initCash)}</td><td class="right">${fmtNT(stockParams.reduce((s,p)=>s+p.monthlyAdd,0))}/月</td><td class="right" style="color:var(--accent)">${fmtNT(final.total)}</td><td class="right" style="color:var(--accent3)">${fmtNT(final.divMonthly)}</td></tr></tfoot>
   `;
 }
 
