@@ -6,10 +6,6 @@
       "use": "@vercel/node"
     },
     {
-      "src": "api/bank.js",
-      "use": "@vercel/node"
-    },
-    {
       "src": "public/**",
       "use": "@vercel/static"
     }
@@ -18,14 +14,6 @@
     {
       "src": "/api/notion",
       "dest": "/api/notion.js"
-    },
-    {
-      "src": "/api/bank",
-      "dest": "/api/bank.js"
-    },
-    {
-      "src": "/bank/?",
-      "dest": "/public/bank/index.html"
     },
     {
       "src": "/(.*)",
